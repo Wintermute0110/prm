@@ -2,6 +2,9 @@
 
 A (very basic at the moment) multi-DAT Python ROM manager.
 
+Python ROM Manager consists of two script. `prm` is the No-Intro ROM manager and
+`prm-mame` is the MAME ROM manager.
+
 ## Features
 
  1. Coded in Python 3. No external dependencies, only the Python 3 interpreter.

@@ -1,5 +1,15 @@
 # Python ROM Manager command reference
 
+`prm` is the ROM manager for No-Intro ROM collections.
+
+No-Intro ROM sets have one ROM. In other words, each set ZIP file has one and only one ROM file.
+On the other hand, MAME ROM sets may have one or more than one ROM.
+
+Because every No-Intro ROM set have a single ROM, `prm` only reports ROMs and not ROM sets.
+In `prm`, set and ROM can be used interchangeably.
+
+Note that both `prm` and `prm-mame` share the configuration file `configuration.xml`.
+
 ## Invocation
 
 ```
@@ -109,14 +119,15 @@ $ prm status megadrive
 
 Shows the status of all the previously scanned ROM collections.
 
+A ROMs has `BadName` if the ROM has a wrong name or the ZIP file has a wrong name or both.
+
 Command example:
 ```
 $ prm status megadrive
-Collection    Platform   Total sets Have sets  Miss sets Unknown sets Total ROMs Have ROMs Miss ROMs Unknown ROMs
------------------------------------------------------------------------------------------------------------------
-snes          snes       3,128
-megadrive     megadrive  
-mame          mame       
+Collection    Platform   Total ROMs  Have ROMs  Miss ROMs  Unknown ROMs  BadName ROMs
+-------------------------------------------------------------------------------------
+snes          snes            1,234      1,234      1,124         1,123         1,123
+megadrive     megadrive       1,234      1,234      1,124         1,123         1,123
 ```
 
 ### `fix COLLECTION`
@@ -128,18 +139,6 @@ After a fix it is a good idea to rescan your set to check everything is all righ
 Command example:
 ```
 $ prm fix megadrive
-```
-
-### `rebuild COLLECTION`
-
-**Planned feature**
-
-Rebuilds a ROM set taking ROMs from one or more `<Sourcedir>` and copying to the correct
-place with the correct name to `<ROMdir>`. ROMs in `<Sourcedir>` are never modified.
-
-Example:
-```
-$ prm rebuild mame2003plus
 ```
 
 ### `sort`
