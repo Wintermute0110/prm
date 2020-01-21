@@ -14,6 +14,6 @@ A (very basic at the moment) multi-DAT Python ROM manager.
 
  1. [Installation instructions](./doc/Installation.md)
 
- 2. [Getting started guide](./doc/Getting started.md)
+ 2. [Getting started guide](./doc/Getting-started.md)
 
- 3. [Command reference](./doc/Command reference.md)
+ 3. [Command reference](./doc/Command-reference.md)
