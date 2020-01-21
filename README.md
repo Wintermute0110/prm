@@ -19,8 +19,8 @@ Python ROM Manager consists of two script. `prm` is the No-Intro ROM manager and
 
  2. [Getting started guide for NoIntro collections](./doc/Getting-started-nointro.md)
 
- 3. [prm command reference](./doc/Command-reference-prm.md)
+ 3. [prm command reference](./doc/Command-reference-nointro.md)
 
  4. [Getting started guide for MAME collections](./doc/Getting-started-mame.md)
 
- 5. [prm-mame command reference](./doc/Command-reference-prm-mame.md)
+ 5. [prm-mame command reference](./doc/Command-reference-mame.md)
