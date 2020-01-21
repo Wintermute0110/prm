@@ -3,12 +3,11 @@
 `prm` is the ROM manager for No-Intro ROM collections.
 
 No-Intro ROM sets have one ROM. In other words, each set ZIP file has one and only one ROM file.
-On the other hand, MAME ROM sets may have one or more than one ROM.
+On the other hand, MAME ROM sets may have one or more than one ROM. Because every No-Intro ROM
+set have a single ROM, `prm` only reports ROMs and not ROM sets. In `prm`, set and ROM
+can be used interchangeably.
 
-Because every No-Intro ROM set have a single ROM, `prm` only reports ROMs and not ROM sets.
-In `prm`, set and ROM can be used interchangeably.
-
-Note that both `prm` and `prm-mame` share the configuration file `configuration.xml`.
+Note that both `prm` and `prm-mame` share the same configuration file named `configuration.xml`.
 
 ## Invocation
 
@@ -18,16 +17,16 @@ prm COMMAND [COLLECTION] [OPTIONS]
 
 ## Configuration file
 
-The configuration file must be named `configuration.xml`. Next is an example of
+The configuration file must be named `configuration.xml`. This is an example of
 `configuration.xml`:
 
 ```
 <!-- Example configuration file for prm. -->
-<general>
+<common>
     <NoIntro_DAT_directory>/home/kodi/DATs-NoIntro-standard/</NoIntro_DAT_directory>
     <MAME_DAT_directory>/home/kodi/DATs-mame/</MAME_DAT_directory>
     <Incoming_directory>/home/kodi/incoming/</Incoming_directory>
-</general>
+</common>
 
 <collection>
     <name>snes</name>
@@ -64,11 +63,15 @@ The configuration file must be named `configuration.xml`. Next is an example of
 
 ### `listcollections`
 
-Display all the ROM sets in the configuration file.
+Display all the ROM collections in the configuration file.
+
+The DAT file can be specified in the `<DAT>` tag, for example `<DAT>/home/kodi/DATs/megadrive.dat</DAT>`.
+If the automatic option is used `<DAT>automatic</DAT>`, then `prm` will pick a DAT file
+automatically from the directory `<NoIntro_DAT_directory>` in the `<common>` section.
 
 Command example:
 ```
-$ prm listsets
+$ prm listcollections
 Set name      Platform   DAT file
 --------------------------------
 snes          snes       zxcvzxcv.dat
@@ -84,12 +87,12 @@ DAT file.
 
 Command example:
 ```
-Long name                               Short name            Compact name  Alias
--------------------------------------------------------------------------------------
-MAME                                    arcade-mame           mame          None 
-Nintendo SNES                           nintendo-snes         snes          None
-Sega Genesis                            sega-genesis          genesis       megadrive
-Sega Mega Drive                         sega-megadrive        megadrive     None
+Long name        Short name            Compact name  Alias
+--------------------------------------------------------------
+MAME             arcade-mame           mame          None 
+Nintendo SNES    nintendo-snes         snes          None
+Sega Genesis     sega-genesis          genesis       megadrive
+Sega Mega Drive  sega-megadrive        megadrive     None
 ```
 
 ### `scan COLLECTION`
@@ -101,9 +104,13 @@ Command example:
 $ prm scan megadrive
 Scanning ROM collection megadrive
 ...
-Scanner results (missing/total)
-Sets ROMs
-
+=== Scanner results ===
+Collection    megadrive
+Total ROMs    1,234
+Have ROMs     1,234
+Miss ROMs     1,234
+Unknwon ROMs  1,234
+BadName ROMs  1,234
 ```
 
 ### `status COLLECTION`
