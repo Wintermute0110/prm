@@ -74,10 +74,8 @@ Command example:
 $ prm listcollections
 Set name      Platform   DAT file
 --------------------------------
-snes          snes       zxcvzxcv.dat
-megadrive     megadrive  zxcvzxcv.dat
-mame          mame       zxcvzxcv.dat
-mame2003plus  mame       zxcvzxcv.dat
+snes          snes       Nintendo - Super Nintendo Entertainment System (Combined) (20191027-010632).dat
+megadrive     megadrive  Sega - Mega Drive - Genesis (20191120-213041).dat
 ```
 
 ### `listplatforms`
@@ -97,7 +95,13 @@ Sega Mega Drive  sega-megadrive        megadrive     None
 
 ### `scan COLLECTION`
 
-Scans the ROMs in a collection. ROM ZIP files are in the directory `<ROMdir>`.
+Scans the ROMs in a collection. ROM ZIP files are in the directory `<ROMdir>` defined
+on each `<collection>`. After the scanner completes, the results are stored
+for later display.
+
+A ROMs has `BadName` if the ROM has a wrong name or the ZIP file has a wrong name or both.
+
+`Unknown ROMs` means a ZIP file with unknown contents or a non-ZIP file.
 
 Command example:
 ```
@@ -109,7 +113,7 @@ Collection    megadrive
 Total ROMs    1,234
 Have ROMs     1,234
 Miss ROMs     1,234
-Unknwon ROMs  1,234
+Unknown ROMs  1,234
 BadName ROMs  1,234
 ```
 
@@ -120,13 +124,17 @@ Shows the status of a previously scanned ROM set.
 Command example:
 ```
 $ prm status megadrive
+Collection    megadrive
+Total ROMs    1,234
+Have ROMs     1,234
+Miss ROMs     1,234
+Unknown ROMs  1,234
+BadName ROMs  1,234
 ```
 
 ### `statusall`
 
 Shows the status of all the previously scanned ROM collections.
-
-A ROMs has `BadName` if the ROM has a wrong name or the ZIP file has a wrong name or both.
 
 Command example:
 ```
@@ -139,9 +147,10 @@ megadrive     megadrive       1,234      1,234      1,124         1,123         
 
 ### `fix COLLECTION`
 
-Fixes in place a ROM set. Currently only renames ZIP files and ROMs.
+Fixes in place a ROM set. Currently only renames ZIP files and ROMs inside ZIP files.
 
-After a fix it is a good idea to rescan your set to check everything is all right.
+After a fix command completes it is a good idea to rescan your set to check
+everything is all right.
 
 Command example:
 ```
