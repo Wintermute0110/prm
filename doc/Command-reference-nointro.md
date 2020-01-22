@@ -120,6 +120,10 @@ Unknown ROMs  1,234
 BadName ROMs  1,234
 ```
 
+### `scanall`
+
+Scans all the collections.
+
 ### `status COLLECTION`
 
 Shows the status of a previously scanned ROM set.
@@ -159,6 +163,10 @@ Command example:
 ```
 $ prm fix megadrive
 ```
+
+### `fixall`
+
+Fixes all the collections.
 
 ### `sort`
 
