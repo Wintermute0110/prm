@@ -546,3 +546,8 @@ def get_ROM_set_status(filename):
     set.status = ROMset.SET_STATUS_UNKNOWN
 
     return set
+
+# Fixes a ROM set with status SET_STATUS_BADNAME
+# Rename ZIP file and the single ROM in the ZIP file.
+def fix_ROM_set(set):
+    pass
