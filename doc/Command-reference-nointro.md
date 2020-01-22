@@ -108,6 +108,9 @@ Command example:
 $ prm scan megadrive
 Scanning ROM collection megadrive
 ...
+Set STATUS "/home/kodi/ROMs/sega-megadrive/Sonic.zip"
+ROM STATUS "Sonic.md" 
+...
 === Scanner results ===
 Collection    megadrive
 Total ROMs    1,234
