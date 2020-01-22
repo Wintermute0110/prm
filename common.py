@@ -19,9 +19,11 @@
 from collections import OrderedDict
 import fnmatch
 import os
+import pprint
 import re
 import sys
 import xml.etree.ElementTree
+import zipfile
 
 # --- Global variables ---------------------------------------------------------------------------
 PRM_VERSION = '0.1.0'
@@ -544,6 +546,40 @@ def get_ROM_set_status(filename):
     set = ROMset()
     set.filename = filename
     set.status = ROMset.SET_STATUS_UNKNOWN
+
+    # Open the ZIP file.
+    log_debug('Processing "{}"'.format(filename))
+    try:
+        zip_f = zipfile.ZipFile(filename, 'r')
+    except zipfile.BadZipfile as e:
+        set.status = ROMset.SET_STATUS_BAD
+        return set
+
+    # ZIP file must have one and only one file.
+    zip_file_list = []
+    for zfile in zip_f.namelist():
+        z_info = zip_f.getinfo(zfile)
+        size = z_info.file_size
+        CRC = '{0:08x}'.format(z_info.CRC)
+        log_debug('zfile "{}"'.format(zfile))
+        log_debug('Size {:,} CRC {}'.format(size, CRC))
+        zip_file_list.append({
+            'fname' : zfile,
+            'size' : size,
+            'CRC' : CRC,
+        })
+    zip_f.close()
+
+    # If set has 0 or more than 1 file that's and error.
+    if len(zip_file_list) != 1:
+        set.status = ROMset.SET_STATUS_BAD
+        return set
+
+    # Determine status of the ROM file.
+    # Look for the ROM in the DAT file by searching the CRC.
+    # Should we trust the CRC in the ZIP file or should we decompress the data and calculate
+    # our own checksums?
+    
 
     return set
 
