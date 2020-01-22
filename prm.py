@@ -23,6 +23,7 @@ import sys
 # --- PRM modules --------------------------------------------------------------------------------
 import common
 from common import log_error, log_warn, log_info, log_verb, log_debug
+from common import FileName
 
 # --- Class with program options and settings ----------------------------------------------------
 class Options:
@@ -53,9 +54,8 @@ def get_Filter_from_Config(filterName):
     sys.exit(20)
 
 # --- Main body functions ------------------------------------------------------------------------
-list_ljust = 16
 def command_listcollections(options):
-    log_info('\033[1m[Listing ROM Collections in the configuration file]\033[0m')
+    log_info('\033[1mListing ROM Collections in the configuration file\033[0m')
 
     # Read the configuration file.
     configuration = common.parse_File_Config(options)
@@ -81,12 +81,48 @@ def command_listcollections(options):
     print('')
     for line in table_text: print(line)
 
+def command_scan(options, collection_name):
+    log_info('\033[1mScanning collection\033[0m')
+    configuration = common.parse_File_Config(options)
+
+    # Check if the configuration in the command line exists.
+    if collection_name not in configuration.collections:
+        log_error('Collection "{}" not found in the configuration file.'.format(collection_name))
+        sys.exit(1)
+    collection = configuration.collections[collection_name]
+
+    # Load DAT file.
+    DAT_FN = FileName(collection['DAT'])
+    DAT = common.load_XML_DAT_file(DAT_FN)
+
+    # Scan files in ROM_dir.
+    ROM_dir_FN = FileName(collection['ROM_dir'])
+    log_info('Scanning files in "{}"...'.format(ROM_dir_FN.getPath()))
+    if not ROM_dir_FN.exists():
+        log_error('Directory does not exist "{}"'.format(ROM_dir_FN.getPath()))
+        sys.exit(10)
+    file_list = ROM_dir_FN.recursiveScanFilesInPath('*')
+
+    # Process files.
+    set_list = []
+    for filename in sorted(file_list):
+        # Determine status of the ROM set (aka ZIP file).
+        set = common.get_ROM_set_status(filename)
+        set_list.append(set)
+
+    # Compute statistics.
+
+    # Print scanner results.
+    for set in set_list:
+        log_info('SET {} "{}"'.format(set.status, set.filename))
+
 def command_usage():
   print("""\033[32mUsage: prm.py [options] COMMAND [COLLECTION]\033[0m
 
 \033[32mCommands:\033[0m
 \033[31musage\033[0m                    Print usage information (this text).
 \033[31mlistcollections\033[0m          Display ROM collections in the configuration file.
+\033[31mscan COLLECTION\033[0m          Scan ROM_dir in a collection and print results.
 
 \033[32mOptions:
 \033[35m-h\033[0m, \033[35m--help\033[0m               Print short command reference.
@@ -99,21 +135,28 @@ def command_usage():
 # -----------------------------------------------------------------------------
 print('\033[36mPython ROM Manager for No-Intro ROM sets\033[0m version ' + common.PRM_VERSION)
 
+# --- Initialise data directory
+# This is used to store the results of scans for later display. Use JSON to store data.
+
 # --- Command line parser
 parser = argparse.ArgumentParser()
-parser.add_argument('-v', '--verbose', help = "be verbose", action = "count")
-parser.add_argument('--dryRun', help = "don't modify any files", action = "store_true")
-parser.add_argument('command', help = "Main action to do", nargs = 1)
-parser.add_argument("collection", help = "ROM collection name", nargs = '?')
+parser.add_argument('-v', '--verbose', help = 'Bbe verbose', action = 'count')
+parser.add_argument('--dryRun', help = 'Do not modify any files', action = 'store_true')
+parser.add_argument('command', help = 'Main action to do', nargs = 1)
+parser.add_argument('collection', help = 'ROM collection name', nargs = '?')
 args = parser.parse_args()
 options = process_arguments(args)
+# pprint.pprint(args)
 
 # --- Positional arguments that don't require a filterName
 command = args.command[0]
 if command == 'usage':
-    command_usage(options)
+    command_usage()
 elif command == 'listcollections':
     command_listcollections(options)
+elif command == 'scan':
+    collection_name = args.collection
+    command_scan(options, collection_name)
 else:
     print('\033[31m[ERROR]\033[0m Unrecognised command "{}"'.format(command))
     sys.exit(1)
