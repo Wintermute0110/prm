@@ -1,0 +1,24 @@
+<!--
+    Example configuration file for prm.
+-->
+<PRM>
+<common>
+    <NoIntro_DAT_dir>/home/kodi/DATs-NoIntro-standard/</NoIntro_DAT_dir>
+    <MAME_DAT_dir>/home/kodi/DATs-mame/</MAME_DAT_dir>
+    <Incoming_dir>/home/kodi/incoming/</Incoming_dir>
+</common>
+
+<collection>
+    <name>snes</name>
+    <platform>snes</platform>
+    <DAT>automatic</DAT>
+    <ROM_dir>/home/kodi/ROMs/nintendo-snes/</ROM_dir>
+</collection>
+
+<collection>
+    <name>megadrive</name>
+    <platform>megadrive</platform>
+    <DAT>automatic</DAT>
+    <ROM_dir>/home/kodi/ROMs/sega-megadrive/</ROM_dir>
+</collection>
+</PRM>
