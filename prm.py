@@ -108,7 +108,7 @@ def command_scan(options, collection_name):
         for rom in set.rom_list:
             if rom['status'] == common.ROMset.ROM_STATUS_BADNAME:
                 log_info('ROM {} "{}" -> "{}"'.format(
-                    rom['status'], rom['name'], rom['correct_rom_name']))
+                    rom['status'], rom['name'], rom['correct_name']))
             else:
                 log_info('ROM {} "{}"'.format(rom['status'], rom['name']))
 

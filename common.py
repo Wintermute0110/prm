@@ -593,7 +593,8 @@ class ROMset:
 
     def __init__(self, filename):
         self.filename = filename
-        self.correct_filename = None
+        # Set correct name is the current one until the proper one can be determined.
+        self.correct_filename = filename
         self.status = None
         self.rom_list = []
 
@@ -666,7 +667,15 @@ def get_ROM_set_status(filename, DAT):
             rom['status'] = ROMset.ROM_STATUS_UNKNOWN
             log_debug('ROM {} "{}"'.format(rom['status'], rom['name']))
 
-    # Determine status of set.
+    # Determine set correct name.
+    C_ROM_FN = FileName(set.rom_list[0]['correct_name'])
+    set_FN = FileName(set.filename)
+    C_set_FN = FileName(set_FN.getDir()).pjoin(C_ROM_FN.getBase_noext() + '.zip')
+    log_debug('Set name    "{}"'.format(set_FN.getPath()))
+    log_debug('Good name   "{}"'.format(C_set_FN.getPath()))
+    set.correct_filename = C_set_FN.getPath()
+
+    # Determine status of set based on ROM status.
     rom_status_list = [rom['status'] == ROMset.ROM_STATUS_GOOD for rom in set.rom_list]
     if not all(rom_status_list):
         log_debug('Set status BAD. Not all ROMs are good.')
@@ -675,14 +684,8 @@ def get_ROM_set_status(filename, DAT):
 
     # Check if set name has the correct name.
     # The set name must be the same as the correct ROM name.
-    C_ROM_FN = FileName(set.rom_list[0]['correct_name'])
-    set_FN = FileName(set.filename)
-    C_set_FN = FileName(set_FN.getDir()).pjoin(C_ROM_FN.getBase_noext() + '.zip')
-    log_debug('Set name    "{}"'.format(set_FN.getPath()))
-    log_debug('Good name   "{}"'.format(C_set_FN.getPath()))
     if set_FN.getPath() != C_set_FN.getPath():
         log_debug('Set status BAD. Wrong ZIP filename.')
-        set.correct_filename = C_set_FN.getPath()
         set.status = ROMset.SET_STATUS_BAD
         return set
     set.status = ROMset.SET_STATUS_GOOD
@@ -700,6 +703,7 @@ def get_collection_statistics(set_list):
     }
 
     for set in set_list:
+        if not set.rom_list: continue
         rom = set.rom_list[0]
         stats['total'] += 1
         if   rom['status'] == ROMset.ROM_STATUS_GOOD:    stats['have'] += 1
@@ -714,7 +718,16 @@ def get_collection_statistics(set_list):
 # Fixes a ROM set with status SET_STATUS_BADNAME
 # Rename ZIP file and the single ROM in the ZIP file.
 def fix_ROM_set(set):
-    log_info('Fixing set "{}"'.format(set.filename))
+    log_info('\nFixing set "{}"'.format(set.filename))
+
+    # If set has not valid ROMs cannot be fixed.
+    if not set.rom_list:
+        log_info('Set has no ROMs, cannot be fixed.')
+        return
+
+    if set.rom_list[0]['status'] == ROMset.ROM_STATUS_UNKNOWN:
+        log_info('Set has an unknown ROM, cannot be fixed.')
+        return
 
     # First rename the set (ZIP file) and then rename the single ROM in the set.
     set_FN = FileName(set.filename)
@@ -737,7 +750,7 @@ def fix_ROM_set(set):
     rom_name = zip_f.namelist()[0]
     zip_f.close()
     if rom_name != new_rom_name:
-        log_info('Creting temp file "{}"'.format(temp_fname))
+        log_info('Creating temp file "{}"'.format(temp_fname))
         zin = zipfile.ZipFile(set_fname, 'r')
         # zout = zipfile.ZipFile(temp_fname, 'w', compression = zipfile.ZIP_DEFLATED, compresslevel = 9)
         zout = zipfile.ZipFile(temp_fname, 'w', compression = zipfile.ZIP_DEFLATED)
