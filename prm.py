@@ -105,7 +105,8 @@ def command_scan(options, collection_name):
         set = common.get_ROM_set_status(filename, DAT)
         set_list.append(set)
 
-    # Print scanner results.
+    # Print scanner results (long list)
+    print('\n=== Scanner long list ===')
     for set in set_list:
         log_info('SET {} "{}"'.format(set.status, set.filename))
         for rom in set.rom_list:
@@ -114,6 +115,16 @@ def command_scan(options, collection_name):
                     rom['status'], rom['name'], rom['correct_rom_name']))
             else:
                 log_info('ROM {} "{}"'.format(rom['status'], rom['name']))
+
+    # Print scanner summary.
+    stats = common.get_collection_statistics(set_list)
+    print('\n=== Scanner results ===')
+    print('Collection   {}'.format(collection_name))
+    print('Total ROMs   {:,}'.format(stats['total']))
+    print('Have ROMs    {:,}'.format(stats['have']))
+    print('Miss ROMs    {:,}'.format(stats['miss']))
+    print('Badname ROMs {:,}'.format(stats['badname']))
+    print('Unknown ROMs {:,}'.format(stats['unknown']))
 
 def command_fix(options, collection_name):
     log_info('Fixing collection')

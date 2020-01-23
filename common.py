@@ -576,7 +576,7 @@ def load_XML_DAT_file(xml_FN):
     DAT.create_indices()
 
     # Print statistics
-    log_info('Sets {:,} / ROMs {:,}'.format(DAT.num_sets(), DAT.num_ROMs()))
+    log_info('DAT Sets {:,} / ROMs {:,}'.format(DAT.num_sets(), DAT.num_ROMs()))
 
     return DAT
 
@@ -669,6 +669,27 @@ def get_ROM_set_status(filename, DAT):
     set.status = ROMset.SET_STATUS_GOOD if all(rom_status_list) else ROMset.SET_STATUS_BAD
 
     return set
+
+def get_collection_statistics(set_list):
+    stats = {
+        'total' : 0,
+        'have' : 0,
+        'miss' : 0,
+        'badname' : 0,
+        'unknown' : 0,
+    }
+
+    for set in set_list:
+        rom = set.rom_list[0]
+        stats['total'] += 1
+        if   rom['status'] == ROMset.ROM_STATUS_GOOD:    stats['have'] += 1
+        elif rom['status'] == ROMset.ROM_STATUS_BADNAME: stats['badname'] += 1
+        elif rom['status'] == ROMset.ROM_STATUS_UNKNOWN: stats['unknown'] += 1
+        else:
+            log_error('Unrecognised ROM status. Logical error.')
+            sys.exit(10)
+
+    return stats
 
 # Fixes a ROM set with status SET_STATUS_BADNAME
 # Rename ZIP file and the single ROM in the ZIP file.
