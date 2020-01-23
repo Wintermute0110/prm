@@ -45,13 +45,27 @@ def process_arguments(args):
 
     return options
 
-# Returns the configuration filter object given the filter name.
-# Abort if not found.
-def get_Filter_from_Config(filterName):
-    if filterName in configuration.filters:
-        return configuration.filters[filterName]
-    log_error('Filter "{}" not found in configuration file'.format(filterName))
-    sys.exit(20)
+def perform_scanner(collection):
+    # Load DAT file.
+    DAT_FN = FileName(collection['DAT'])
+    DAT = common.load_XML_DAT_file(DAT_FN)
+
+    # Scan files in ROM_dir.
+    ROM_dir_FN = FileName(collection['ROM_dir'])
+    log_info('Scanning files in "{}"...'.format(ROM_dir_FN.getPath()))
+    if not ROM_dir_FN.exists():
+        log_error('Directory does not exist "{}"'.format(ROM_dir_FN.getPath()))
+        sys.exit(10)
+    file_list = ROM_dir_FN.recursiveScanFilesInPath('*')
+
+    # Process files.
+    set_list = []
+    for filename in sorted(file_list):
+        # Determine status of the ROM set (aka ZIP file).
+        set = common.get_ROM_set_status(filename, DAT)
+        set_list.append(set)
+
+    return set_list
 
 # --- Main body functions ------------------------------------------------------------------------
 def command_listcollections(options):
@@ -86,24 +100,8 @@ def command_scan(options, collection_name):
         sys.exit(1)
     collection = configuration.collections[collection_name]
 
-    # Load DAT file.
-    DAT_FN = FileName(collection['DAT'])
-    DAT = common.load_XML_DAT_file(DAT_FN)
-
-    # Scan files in ROM_dir.
-    ROM_dir_FN = FileName(collection['ROM_dir'])
-    log_info('Scanning files in "{}"...'.format(ROM_dir_FN.getPath()))
-    if not ROM_dir_FN.exists():
-        log_error('Directory does not exist "{}"'.format(ROM_dir_FN.getPath()))
-        sys.exit(10)
-    file_list = ROM_dir_FN.recursiveScanFilesInPath('*')
-
-    # Process files.
-    set_list = []
-    for filename in sorted(file_list):
-        # Determine status of the ROM set (aka ZIP file).
-        set = common.get_ROM_set_status(filename, DAT)
-        set_list.append(set)
+    # Do scanning.
+    set_list = perform_scanner(collection)
 
     # Print scanner results (long list)
     print('\n=== Scanner long list ===')
@@ -125,6 +123,33 @@ def command_scan(options, collection_name):
     print('Miss ROMs    {:,}'.format(stats['miss']))
     print('Badname ROMs {:,}'.format(stats['badname']))
     print('Unknown ROMs {:,}'.format(stats['unknown']))
+
+def command_scanall(options):
+    log_info('Scanning collection')
+    configuration = common.parse_File_Config(options)
+
+    # Scan collection by collection.
+    stats_list = []
+    for collection_name in configuration.collections:
+        collection = configuration.collections[collection_name]
+        set_list = perform_scanner(collection)
+        stats = common.get_collection_statistics(set_list)
+        stats['name'] = collection_name
+        stats_list.append(stats)
+
+    # Print results.
+    table_str = [
+        ['left', 'left', 'left', 'left', 'left', 'left'],
+        ['Collection', 'Total ROMs', 'Have ROMs', 'Miss ROMs', 'BadName ROMs', 'Unknown ROMs'],
+    ]
+    for stats in stats_list:
+        table_str.append([
+            str(stats['name']), str(stats['total']), str(stats['have']),
+            str(stats['miss']), str(stats['badname']), str(stats['unknown']),
+        ])
+    table_text = common.text_render_table(table_str)
+    print('')
+    for line in table_text: print(line)
 
 def command_fix(options, collection_name):
     log_info('Fixing collection')
@@ -163,18 +188,19 @@ def command_fix(options, collection_name):
             common.fix_ROM_set(set)
 
 def command_usage():
-  print("""\033[32mUsage: prm.py [options] COMMAND [COLLECTION]\033[0m
+  print("""Usage: prm.py [options] COMMAND [COLLECTION]
 
-\033[32mCommands:\033[0m
-\033[31musage\033[0m                    Print usage information (this text).
-\033[31mlistcollections\033[0m          Display ROM collections in the configuration file.
-\033[31mscan COLLECTION\033[0m          Scan ROM_dir in a collection and print results.
-\033[31mfix COLLECTION\033[0m           Fixes sets in ROM_dir in a collection.
+Commands:
+usage                    Print usage information (this text).
+listcollections          Display ROM collections in the configuration file.
+scan COLLECTION          Scan ROM_dir in a collection and print results.
+scanall                  Scan all the collections.
+fix COLLECTION           Fixes sets in ROM_dir in a collection.
 
-\033[32mOptions:
-\033[35m-h\033[0m, \033[35m--help\033[0m               Print short command reference.
-\033[35m-v\033[0m, \033[35m--verbose\033[0m            Print more information about what's going on.
-\033[35m--dryRun\033[0m                 Don't modify any files, just print the operations to be done.
+Options:
+-h, --help               Print short command reference.
+-v, --verbose            Print more information about what's going on.
+--dryRun                 Don't modify any files, just print the operations to be done.
 """)
 
 # -----------------------------------------------------------------------------
@@ -204,6 +230,8 @@ elif command == 'listcollections':
 elif command == 'scan':
     collection_name = args.collection
     command_scan(options, collection_name)
+elif command == 'scanall':
+    command_scanall(options)
 elif command == 'fix':
     collection_name = args.collection
     command_fix(options, collection_name)

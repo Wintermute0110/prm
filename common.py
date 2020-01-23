@@ -417,7 +417,6 @@ class ConfigFile:
 
 # Parses configuration file using ElementTree.
 # Returns a ConfigFile object
-parse_rjust = 16
 def parse_File_Config(options):
     log_info('Parsing configuration file')
     xml_tree = XML_read_file_ElementTree(options.config_file_name)
