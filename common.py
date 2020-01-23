@@ -520,6 +520,13 @@ class DATfile:
                 rom_index += 1
             set_index += 1
 
+    def ROM_CRC_exists(self, crc):
+        return crc in self.crc_index
+
+    def get_ROM_CRC(self, crc):
+        set_idx, rom_idx = self.crc_index[crc]
+        return self.sets[set_idx]['ROMs'][rom_idx]
+
 # Loads a No-Intro XML DAT file. DTD "http://www.logiqx.com/Dats/datafile.dtd"
 # Checks that there are no duplicate CRCs in the DAT file, aborts if so.
 # Returns a DATfile class.
@@ -543,27 +550,27 @@ def load_XML_DAT_file(xml_FN):
     # Process DAT contents
     DAT = DATfile()
     for root_element in xml_tree.getroot():
-        if root_element.tag == 'game':
-            set = DAT.new_set()
-            # Process attributes
-            set['name'] = root_element.attrib['name']
-            if 'cloneof' in root_element.attrib:
-                set['cloneof'] = root_element.attrib['cloneof']
-            # Process subtags.
-            for child in root_element:
-                if child.tag == 'description':
-                    set['description'] = child.text
-                elif child.tag == 'rom':
-                    ROM = DAT.new_rom()
-                    ROM['name'] = child.attrib['name']
-                    ROM['size'] = int(child.attrib['size'])
-                    # Store hash strings as lowercase always.
-                    ROM['crc'] = child.attrib['crc'].upper()
-                    ROM['md5'] = child.attrib['md5'].upper()
-                    ROM['sha1'] = child.attrib['sha1'].upper()
-                    set['ROMs'].append(ROM)
-            # Add to data object.
-            DAT.sets.append(set)
+        if root_element.tag != 'game': continue
+        set = DAT.new_set()
+        # Process attributes
+        set['name'] = root_element.attrib['name']
+        if 'cloneof' in root_element.attrib:
+            set['cloneof'] = root_element.attrib['cloneof']
+        # Process subtags.
+        for child in root_element:
+            if child.tag == 'description':
+                set['description'] = child.text
+            elif child.tag == 'rom':
+                ROM = DAT.new_rom()
+                ROM['name'] = child.attrib['name']
+                ROM['size'] = int(child.attrib['size'])
+                # Store hash strings as lowercase always.
+                ROM['crc'] = child.attrib['crc'].upper()
+                ROM['md5'] = child.attrib['md5'].upper()
+                ROM['sha1'] = child.attrib['sha1'].upper()
+                set['ROMs'].append(ROM)
+        # Add to data object.
+        DAT.sets.append(set)
 
     # Create indices for fast ROM data access.
     DAT.create_indices()
@@ -584,6 +591,10 @@ class ROMset:
     # Set is not a ZIP file or the ZIP file is corrupted or any other error.
     SET_STATUS_BAD     = 'Bad    '
 
+    ROM_STATUS_GOOD    = 'Good   '
+    ROM_STATUS_BADNAME = 'BadName'
+    ROM_STATUS_UNKNOWN = 'Unknown'
+
     def __init__(self):
         self.filename = ''
         self.status = ROMset.SET_STATUS_UNKNOWN
@@ -592,13 +603,14 @@ class ROMset:
     def new_rom(self):
         return {
             'name' : '',
+            'size' : 0,
             'crc' : '',
             'md5' : '',
             'sha1' : '',
-            'status' : '',
+            'status' : ROMset.ROM_STATUS_UNKNOWN,
         }
 
-def get_ROM_set_status(filename):
+def get_ROM_set_status(filename, DAT):
     set = ROMset()
     set.filename = filename
     set.status = ROMset.SET_STATUS_UNKNOWN
@@ -612,25 +624,49 @@ def get_ROM_set_status(filename):
         return set
 
     # ZIP file must have one and only one file.
-    zip_file_list = []
-    for zfile in zip_f.namelist():
-        z_info = zip_f.getinfo(zfile)
-        size = z_info.file_size
-        CRC = '{0:08x}'.format(z_info.CRC).upper()
-        log_debug('zfile "{}" size {:,} CRC {}'.format(zfile, size, CRC))
-        zip_file_list.append({'fname' : zfile, 'size' : size, 'CRC' : CRC})
-    zip_f.close()
-
     # If set has 0 or more than 1 file that's and error.
-    if len(zip_file_list) != 1:
+    num_zip_files = len(zip_f.namelist())
+    log_debug('zip file contains {} files'.format(num_zip_files))
+    if num_zip_files != 1:
         set.status = ROMset.SET_STATUS_BAD
         return set
 
-    # Determine status of the ROM file.
-    # Look for the ROM in the DAT file by searching the CRC.
-    # Should we trust the CRC in the ZIP file or should we decompress the data and calculate
-    # our own checksums?
-    
+    # Build ROM list in set.
+    for zfilename in zip_f.namelist():
+        z_info = zip_f.getinfo(zfilename)
+        size = z_info.file_size
+        CRC = '{0:08x}'.format(z_info.CRC).upper()
+        log_debug('zfilename "{}" size {:,} CRC {}'.format(zfilename, size, CRC))
+        rom = set.new_rom()
+        rom['name'] = zfilename
+        rom['size'] = size
+        rom['crc'] = CRC
+        set.rom_list.append(rom)
+    zip_f.close()
+
+    # Determine status of each ROM.
+    for rom in set.rom_list:
+        # Should we trust the CRC in the ZIP file or should we decompress the data
+        # and calculate our own checksums? For now trust the CRC value of the ZIP file.
+        if DAT.ROM_CRC_exists(rom['crc']):
+            # If ROM found check if filename is correct.
+            datrom = DAT.get_ROM_CRC(rom['crc'])
+            if rom['name'] == datrom['name']:
+                rom['status'] = ROMset.ROM_STATUS_GOOD
+                log_debug('ROM {} "{}"'.format(rom['status'], rom['name']))
+            else:
+                rom['status'] = ROMset.ROM_STATUS_BADNAME
+                rom['correct_rom_name'] = datrom['name']
+                log_debug('ROM {} "{}"'.format(rom['status'], rom['name']))
+                log_debug('Good Name   "{}"'.format(datrom['name']))
+        else:
+            # ROM not found.
+            rom['status'] = ROMset.ROM_STATUS_UNKNOWN
+            log_debug('ROM {} "{}"'.format(rom['status'], rom['name']))
+
+    # Determine status of set.
+    rom_status_list = [rom['status'] == ROMset.ROM_STATUS_GOOD for rom in set.rom_list]
+    set.status = ROMset.SET_STATUS_GOOD if all(rom_status_list) else ROMset.SET_STATUS_BAD
 
     return set
 

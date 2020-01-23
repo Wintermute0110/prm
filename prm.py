@@ -64,17 +64,12 @@ def command_listcollections(options):
     # Print the ROM Collections in the configuration file.
     # Use the table printing engine from AML/AEL.
     table_str = [
-        ['left', 'left', 'left', 'left'],
-        ['Name', 'Platform', 'DAT file', 'ROM dir'],
+        ['left', 'left', 'left'],
+        ['Name', 'DAT file', 'ROM dir'],
     ]
     for key in configuration.collections:
         collection = configuration.collections[key]
-        table_str.append([
-            collection['name'],
-            collection['platform'],
-            collection['DAT'],
-            collection['ROM_dir'],
-        ])
+        table_str.append([collection['name'], collection['DAT'], collection['ROM_dir']])
 
     # Print table
     table_text = common.text_render_table(table_str)
@@ -107,13 +102,18 @@ def command_scan(options, collection_name):
     set_list = []
     for filename in sorted(file_list):
         # Determine status of the ROM set (aka ZIP file).
-        set = common.get_ROM_set_status(filename)
+        set = common.get_ROM_set_status(filename, DAT)
         set_list.append(set)
 
-    # Fix sets.
+    # Print scanner results.
     for set in set_list:
-        if set.status == common.ROMset.SET_STATUS_BADNAME:
-            common.fix_ROM_set(set)
+        log_info('SET {} "{}"'.format(set.status, set.filename))
+        for rom in set.rom_list:
+            if rom['status'] == common.ROMset.ROM_STATUS_BADNAME:
+                log_info('ROM {} "{}" -> "{}"'.format(
+                    rom['status'], rom['name'], rom['correct_rom_name']))
+            else:
+                log_info('ROM {} "{}"'.format(rom['status'], rom['name']))
 
 def command_fix(options, collection_name):
     log_info('\033[1mFixing collection\033[0m')
@@ -146,9 +146,10 @@ def command_fix(options, collection_name):
 
     # Compute statistics.
 
-    # Print scanner results.
+    # Fix sets.
     for set in set_list:
-        log_info('SET {} "{}"'.format(set.status, set.filename))
+        if set.status == common.ROMset.SET_STATUS_BADNAME:
+            common.fix_ROM_set(set)
 
 def command_usage():
   print("""\033[32mUsage: prm.py [options] COMMAND [COLLECTION]\033[0m
