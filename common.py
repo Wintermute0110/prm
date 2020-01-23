@@ -612,7 +612,7 @@ def get_ROM_set_status(filename, DAT):
     set = ROMset(filename)
 
     # Open the ZIP file.
-    log_debug('Processing "{}"'.format(filename))
+    log_debug('\nProcessing "{}"'.format(filename))
     try:
         zip_f = zipfile.ZipFile(filename, 'r')
     except zipfile.BadZipfile as e:
@@ -632,7 +632,7 @@ def get_ROM_set_status(filename, DAT):
         z_info = zip_f.getinfo(zfilename)
         size = z_info.file_size
         CRC = '{0:08x}'.format(z_info.CRC).upper()
-        log_debug('zfilename "{}" size {:,} CRC {}'.format(zfilename, size, CRC))
+        log_debug('zfilename   "{}" size {:,} CRC {}'.format(zfilename, size, CRC))
         rom = set.new_rom()
         rom['name'] = zfilename
         rom['correct_name'] = zfilename
@@ -668,7 +668,25 @@ def get_ROM_set_status(filename, DAT):
 
     # Determine status of set.
     rom_status_list = [rom['status'] == ROMset.ROM_STATUS_GOOD for rom in set.rom_list]
-    set.status = ROMset.SET_STATUS_GOOD if all(rom_status_list) else ROMset.SET_STATUS_BAD
+    if not all(rom_status_list):
+        log_debug('Set status BAD. Not all ROMs are good.')
+        set.status = ROMset.SET_STATUS_BAD
+        return set
+
+    # Check if set name has the correct name.
+    # The set name must be the same as the correct ROM name.
+    C_ROM_FN = FileName(set.rom_list[0]['correct_name'])
+    set_FN = FileName(set.filename)
+    C_set_FN = FileName(set_FN.getDir()).pjoin(C_ROM_FN.getBase_noext() + '.zip')
+    log_debug('Set name    "{}"'.format(set_FN.getPath()))
+    log_debug('Good name   "{}"'.format(C_set_FN.getPath()))
+    if set_FN.getPath() != C_set_FN.getPath():
+        log_debug('Set status BAD. Wrong ZIP filename.')
+        set.correct_filename = C_set_FN.getPath()
+        set.status = ROMset.SET_STATUS_BAD
+        return set
+    set.status = ROMset.SET_STATUS_GOOD
+    log_debug('Set status GOOD')
 
     return set
 
@@ -708,7 +726,7 @@ def fix_ROM_set(set):
         log_info('Set name is correct "{}"'.format(set_new_FN.getPath()))
     set_fname = set_new_FN.getPath()
     set_dir = set_new_FN.getDir()
-    temp_fname = os.path.join(set_dir, 'prm.zip')
+    temp_fname = os.path.join(set_dir, '_prm_.zip')
     new_rom_name = set.rom_list[0]['correct_name']
 
     # Then rename the compressed ROM inside the set.
@@ -733,5 +751,3 @@ def fix_ROM_set(set):
         os.rename(temp_fname, set_fname)
     else:
         log_info('ROM name is correct "{}"'.format(rom_name))
-        log_info('This should not happen at this point.')
-        sys.exit(10)
