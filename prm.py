@@ -94,13 +94,11 @@ def command_scan(options, collection_name):
     log_info('Scanning collection')
     configuration = common.parse_File_Config(options)
 
-    # Check if the configuration in the command line exists.
+    # Check if the configuration in the command line exists and do scanning.
     if collection_name not in configuration.collections:
         log_error('Collection "{}" not found in the configuration file.'.format(collection_name))
         sys.exit(1)
     collection = configuration.collections[collection_name]
-
-    # Do scanning.
     set_list = perform_scanner(collection)
 
     # Print scanner results (long list)
@@ -155,36 +153,16 @@ def command_fix(options, collection_name):
     log_info('Fixing collection')
     configuration = common.parse_File_Config(options)
 
-    # Check if the configuration in the command line exists.
+    # Check if the configuration in the command line exists and do scanning.
     if collection_name not in configuration.collections:
         log_error('Collection "{}" not found in the configuration file.'.format(collection_name))
         sys.exit(1)
     collection = configuration.collections[collection_name]
-
-    # Load DAT file.
-    DAT_FN = FileName(collection['DAT'])
-    DAT = common.load_XML_DAT_file(DAT_FN)
-
-    # Scan files in ROM_dir.
-    ROM_dir_FN = FileName(collection['ROM_dir'])
-    log_info('Scanning files in "{}"...'.format(ROM_dir_FN.getPath()))
-    if not ROM_dir_FN.exists():
-        log_error('Directory does not exist "{}"'.format(ROM_dir_FN.getPath()))
-        sys.exit(10)
-    file_list = ROM_dir_FN.recursiveScanFilesInPath('*')
-
-    # Process files.
-    set_list = []
-    for filename in sorted(file_list):
-        # Determine status of the ROM set (aka ZIP file).
-        set = common.get_ROM_set_status(filename)
-        set_list.append(set)
-
-    # Compute statistics.
+    set_list = perform_scanner(collection)
 
     # Fix sets.
     for set in set_list:
-        if set.status == common.ROMset.SET_STATUS_BADNAME:
+        if set.status == common.ROMset.SET_STATUS_BAD:
             common.fix_ROM_set(set)
 
 def command_usage():
@@ -200,8 +178,7 @@ fix COLLECTION           Fixes sets in ROM_dir in a collection.
 Options:
 -h, --help               Print short command reference.
 -v, --verbose            Print more information about what's going on.
---dryRun                 Don't modify any files, just print the operations to be done.
-""")
+--dryRun                 Don't modify any files, just print the operations to be done.""")
 
 # -----------------------------------------------------------------------------
 # main function

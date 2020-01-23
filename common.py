@@ -581,12 +581,9 @@ def load_XML_DAT_file(xml_FN):
 
 # ROMset is a ZIP file that contains ROMs.
 class ROMset:
-    # Status not yet computed.
-    SET_STATUS_UNKNOWN = 'Unknown'
     # Set contains a single known ROM with correct name.
     SET_STATUS_GOOD    = 'Good   '
-    # Set contains a single known ROM with incorrect name.
-    SET_STATUS_BADNAME = 'BadName'
+    # A set can be bad because of many different reasons.
     # Set is not a ZIP file or the ZIP file is corrupted or any other error.
     SET_STATUS_BAD     = 'Bad    '
 
@@ -594,14 +591,16 @@ class ROMset:
     ROM_STATUS_BADNAME = 'BadName'
     ROM_STATUS_UNKNOWN = 'Unknown'
 
-    def __init__(self):
-        self.filename = ''
-        self.status = ROMset.SET_STATUS_UNKNOWN
+    def __init__(self, filename):
+        self.filename = filename
+        self.correct_filename = None
+        self.status = None
         self.rom_list = []
 
     def new_rom(self):
         return {
             'name' : '',
+            'correct_name' : '',
             'size' : 0,
             'crc' : '',
             'md5' : '',
@@ -610,9 +609,7 @@ class ROMset:
         }
 
 def get_ROM_set_status(filename, DAT):
-    set = ROMset()
-    set.filename = filename
-    set.status = ROMset.SET_STATUS_UNKNOWN
+    set = ROMset(filename)
 
     # Open the ZIP file.
     log_debug('Processing "{}"'.format(filename))
@@ -638,6 +635,7 @@ def get_ROM_set_status(filename, DAT):
         log_debug('zfilename "{}" size {:,} CRC {}'.format(zfilename, size, CRC))
         rom = set.new_rom()
         rom['name'] = zfilename
+        rom['correct_name'] = zfilename
         rom['size'] = size
         rom['crc'] = CRC
         set.rom_list.append(rom)
@@ -655,7 +653,12 @@ def get_ROM_set_status(filename, DAT):
                 log_debug('ROM {} "{}"'.format(rom['status'], rom['name']))
             else:
                 rom['status'] = ROMset.ROM_STATUS_BADNAME
-                rom['correct_rom_name'] = datrom['name']
+                rom['correct_name'] = datrom['name']
+                c_rom_name_FN = FileName(datrom['name'])
+                set_FN = FileName(set.filename)
+                c_set_FN = FileName(set_FN.getDir())
+                c_set_FN = c_set_FN.pjoin(c_rom_name_FN.getBase_noext() + '.zip')
+                set.correct_filename = c_set_FN.getPath()
                 log_debug('ROM {} "{}"'.format(rom['status'], rom['name']))
                 log_debug('Good Name   "{}"'.format(datrom['name']))
         else:
@@ -693,4 +696,42 @@ def get_collection_statistics(set_list):
 # Fixes a ROM set with status SET_STATUS_BADNAME
 # Rename ZIP file and the single ROM in the ZIP file.
 def fix_ROM_set(set):
-    pass
+    log_info('Fixing set "{}"'.format(set.filename))
+
+    # First rename the set (ZIP file) and then rename the single ROM in the set.
+    set_FN = FileName(set.filename)
+    set_new_FN = FileName(set.correct_filename)
+    if set_FN.getPath() != set_new_FN.getPath():
+        log_info('MV "{}"\n-> "{}"'.format(set_FN.getPath(), set_new_FN.getPath()))
+        os.rename(set_FN.getPath(), set_new_FN.getPath())
+    else:
+        log_info('Set name is correct "{}"'.format(set_new_FN.getPath()))
+    set_fname = set_new_FN.getPath()
+    set_dir = set_new_FN.getDir()
+    temp_fname = os.path.join(set_dir, 'prm.zip')
+    new_rom_name = set.rom_list[0]['correct_name']
+
+    # Then rename the compressed ROM inside the set.
+    # Files in a ZIP file cannot be renamed directly.
+    # Open ZIP file, read ROM in memory, overwrite ROM in ZIP file with new name.
+    # https://stackoverflow.com/questions/34432130/rename-a-zipped-file-in-python
+    zip_f = zipfile.ZipFile(set_fname, 'r')
+    rom_name = zip_f.namelist()[0]
+    zip_f.close()
+    if rom_name != new_rom_name:
+        log_info('Creting temp file "{}"'.format(temp_fname))
+        zin = zipfile.ZipFile(set_fname, 'r')
+        # zout = zipfile.ZipFile(temp_fname, 'w', compression = zipfile.ZIP_DEFLATED, compresslevel = 9)
+        zout = zipfile.ZipFile(temp_fname, 'w', compression = zipfile.ZIP_DEFLATED)
+        buffer = zin.read(rom_name)
+        zout.writestr(new_rom_name, buffer)
+        zin.close()
+        zout.close()
+        log_info('RM "{}"'.format(set_fname))
+        os.remove(set_fname)
+        log_info('MV "{}"\n-> "{}"'.format(temp_fname, set_fname))
+        os.rename(temp_fname, set_fname)
+    else:
+        log_info('ROM name is correct "{}"'.format(rom_name))
+        log_info('This should not happen at this point.')
+        sys.exit(10)
