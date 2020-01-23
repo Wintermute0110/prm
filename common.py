@@ -72,7 +72,7 @@ def change_log_level(level):
     log_level = level
 
 # --- Print/log to a specific level
-def pprint(level, print_str):
+def myprint(level, print_str):
     # --- Write to console depending on verbosity
     if level <= log_level:
         print(print_str)
@@ -83,20 +83,15 @@ def pprint(level, print_str):
         f_log.write(print_str) # python will convert \n to os.linesep
 
 # --- Some useful function overloads
-def log_error(print_str):
-    pprint(LOG_ERROR, print_str)
+def log_error(print_str): myprint(LOG_ERROR, print_str)
 
-def log_warn(print_str):
-    pprint(LOG_WARN, print_str)
+def log_warn(print_str): myprint(LOG_WARN, print_str)
 
-def log_info(print_str):
-    pprint(LOG_INFO, print_str)
+def log_info(print_str): myprint(LOG_INFO, print_str)
 
-def log_verb(print_str):
-    pprint(LOG_VERB, print_str)
+def log_verb(print_str): myprint(LOG_VERB, print_str)
 
-def log_debug(print_str):
-    pprint(LOG_DEBUG, print_str)
+def log_debug(print_str): myprint(LOG_DEBUG, print_str)
 
 # --- XML functions ------------------------------------------------------------------------------
 # Reads merged MAME XML file.
@@ -468,32 +463,72 @@ def parse_File_Config(options):
     return configuration
 
 # --- DAT file functions -------------------------------------------------------------------------
-# DTD "http://www.logiqx.com/Dats/datafile.dtd"
-def audit_new_rom_logiqx(): 
-    rom = {
-        'name'         : '',
-        'cloneof'      : '',
-        'year'         : '',
-        'manufacturer' : ''
-    }
+class DATfile:
+    def __init__(self):
+        # Key is crc, value is a tuple (a, b) a is the set index, b is the ROM index.
+        self.crc_index = {}
+        self.md5_index = {}
+        self.sha1_index = {}
+        self.sets = []
 
-    return rom
+    def new_set(self):
+        return {
+            'name' : '',
+            'cloneof' : '',
+            'description' : '',
+            'ROMs' : [],
+        }
 
-# Loads a No-Intro XML DAT file. Returns a data structure like:
-# dat = {
-#     'rom_name_A' : {
-#         'name' : 'rom_name_A',
-#         'cloneof' : '',
-#         'rom_name_parent
-#     },
-# }
+    def new_rom(self):
+        return {
+            'name' : '',
+            'size' : 0,
+            'crc' : '',
+            'md5' : '',
+            'sha1' : '',
+        }
+
+    def num_sets(self): return len(self.sets)
+
+    def num_ROMs(self):
+        num_ROMs = 0
+        for set in self.sets:
+            for ROM in set['ROMs']:
+                num_ROMs += 1
+        return num_ROMs
+
+    def create_indices(self):
+        set_index = 0
+        for set in self.sets:
+            rom_index = 0
+            for ROM in set['ROMs']:
+                if ROM['crc'] in self.crc_index:
+                    log_error('In set {} ROM {}'.format(set['name'], ROM['name']))
+                    log_error('Duplicated CRC {}'.format(ROM['crc']))
+                    sys.exit(2)
+                if ROM['md5'] in self.crc_index:
+                    log_error('In set {} ROM {}'.format(set['name'], ROM['name']))
+                    log_error('Duplicated MD5 {}'.format(ROM['md5']))
+                    sys.exit(2)
+                if ROM['sha1'] in self.crc_index:
+                    log_error('In set {} ROM {}'.format(set['name'], ROM['name']))
+                    log_error('Duplicated SHA1 {}'.format(ROM['sha1']))
+                    sys.exit(2)
+                self.crc_index[ROM['crc']] = (set_index, rom_index)
+                self.md5_index[ROM['md5']] = (set_index, rom_index)
+                self.sha1_index[ROM['sha1']] = (set_index, rom_index)
+                rom_index += 1
+            set_index += 1
+
+# Loads a No-Intro XML DAT file. DTD "http://www.logiqx.com/Dats/datafile.dtd"
+# Checks that there are no duplicate CRCs in the DAT file, aborts if so.
+# Returns a DATfile class.
 def load_XML_DAT_file(xml_FN):
     if not xml_FN.exists():
         log_error('Does not exists "{0}"'.format(xml_FN.getPath()))
         sys.exit(10)
 
     # Parse using ElementTree
-    dat = {}
     log_info('Loading XML "{0}"'.format(xml_FN.getOriginalPath()))
     try:
         xml_tree = xml.etree.ElementTree.parse(xml_FN.getPath())
@@ -506,16 +541,37 @@ def load_XML_DAT_file(xml_FN):
         sys.exit(10)
 
     # Process DAT contents
+    DAT = DATfile()
     for root_element in xml_tree.getroot():
         if root_element.tag == 'game':
-            nointro_rom = audit_new_rom_logiqx()
-            rom_name = root_element.attrib['name']
-            nointro_rom['name'] = rom_name
+            set = DAT.new_set()
+            # Process attributes
+            set['name'] = root_element.attrib['name']
             if 'cloneof' in root_element.attrib:
-                nointro_rom['cloneof'] = root_element.attrib['cloneof']
-            dat[rom_name] = nointro_rom
+                set['cloneof'] = root_element.attrib['cloneof']
+            # Process subtags.
+            for child in root_element:
+                if child.tag == 'description':
+                    set['description'] = child.text
+                elif child.tag == 'rom':
+                    ROM = DAT.new_rom()
+                    ROM['name'] = child.attrib['name']
+                    ROM['size'] = int(child.attrib['size'])
+                    # Store hash strings as lowercase always.
+                    ROM['crc'] = child.attrib['crc'].upper()
+                    ROM['md5'] = child.attrib['md5'].upper()
+                    ROM['sha1'] = child.attrib['sha1'].upper()
+                    set['ROMs'].append(ROM)
+            # Add to data object.
+            DAT.sets.append(set)
 
-    return dat
+    # Create indices for fast ROM data access.
+    DAT.create_indices()
+
+    # Print statistics
+    log_info('Sets {:,} / ROMs {:,}'.format(DAT.num_sets(), DAT.num_ROMs()))
+
+    return DAT
 
 # ROMset is a ZIP file that contains ROMs.
 class ROMset:
@@ -560,14 +616,9 @@ def get_ROM_set_status(filename):
     for zfile in zip_f.namelist():
         z_info = zip_f.getinfo(zfile)
         size = z_info.file_size
-        CRC = '{0:08x}'.format(z_info.CRC)
-        log_debug('zfile "{}"'.format(zfile))
-        log_debug('Size {:,} CRC {}'.format(size, CRC))
-        zip_file_list.append({
-            'fname' : zfile,
-            'size' : size,
-            'CRC' : CRC,
-        })
+        CRC = '{0:08x}'.format(z_info.CRC).upper()
+        log_debug('zfile "{}" size {:,} CRC {}'.format(zfile, size, CRC))
+        zip_file_list.append({'fname' : zfile, 'size' : size, 'CRC' : CRC})
     zip_f.close()
 
     # If set has 0 or more than 1 file that's and error.
