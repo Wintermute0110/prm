@@ -55,7 +55,7 @@ def get_Filter_from_Config(filterName):
 
 # --- Main body functions ------------------------------------------------------------------------
 def command_listcollections(options):
-    log_info('\033[1mListing ROM Collections in the configuration file\033[0m')
+    log_info('Listing ROM Collections in the configuration file')
 
     # Read the configuration file.
     configuration = common.parse_File_Config(options)
@@ -77,7 +77,7 @@ def command_listcollections(options):
     for line in table_text: print(line)
 
 def command_scan(options, collection_name):
-    log_info('\033[1mScanning collection\033[0m')
+    log_info('Scanning collection')
     configuration = common.parse_File_Config(options)
 
     # Check if the configuration in the command line exists.
@@ -116,7 +116,7 @@ def command_scan(options, collection_name):
                 log_info('ROM {} "{}"'.format(rom['status'], rom['name']))
 
 def command_fix(options, collection_name):
-    log_info('\033[1mFixing collection\033[0m')
+    log_info('Fixing collection')
     configuration = common.parse_File_Config(options)
 
     # Check if the configuration in the command line exists.
