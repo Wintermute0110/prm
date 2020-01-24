@@ -382,6 +382,7 @@ class ConfigFile:
     # Valid tags in the XML file. Text in these tags is string.
     common_tag_set = [
         'NoIntro_DAT_dir',
+        'NoIntro_pclone_DAT_dir',
         'MAME_DAT_dir',
         'Incoming_dir',
     ]
@@ -395,17 +396,16 @@ class ConfigFile:
     def __init__(self):
         # Dictionary of strings. Key is the XML tag name in <common>.
         # Uses OrderedDict() to keep order as found in the config file.
-        self.common_opts = self.new_common_dic()
-        # Dictionary of dictionaries. Key is the collection name.
-        # Uses OrderedDict() to keep order as found in the config file.
-        self.collections = OrderedDict()
-
-    def new_common_dic(self):
-        return OrderedDict([
+        self.common_opts = OrderedDict([
             ('NoIntro_DAT_dir', ''),
+            ('NoIntro_pclone_DAT_dir', ''),
             ('MAME_DAT_dir', ''),
             ('Incoming_dir', ''),
         ])
+
+        # Dictionary of dictionaries. Key is the collection name.
+        # Uses OrderedDict() to keep order as found in the config file.
+        self.collections = OrderedDict()
 
     def new_collection_dic(self):
         return OrderedDict([
@@ -531,7 +531,7 @@ class DATfile:
 # Returns a DATfile class.
 def load_XML_DAT_file(xml_FN):
     if not xml_FN.exists():
-        log_error('Does not exists "{0}"'.format(xml_FN.getPath()))
+        log_error('Does not exist "{0}"'.format(xml_FN.getPath()))
         sys.exit(10)
 
     # Parse using ElementTree

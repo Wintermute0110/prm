@@ -45,9 +45,16 @@ def process_arguments(args):
 
     return options
 
-def perform_scanner(collection):
+def perform_scanner(configuration, collection_name):
+    # Check if the configuration in the command line exists and do scanning.
+    if collection_name not in configuration.collections:
+        log_error('Collection "{}" not found in the configuration file.'.format(collection_name))
+        sys.exit(1)
+    collection = configuration.collections[collection_name]
+
     # Load DAT file.
-    DAT_FN = FileName(collection['DAT'])
+    DAT_dir_FN = FileName(configuration.common_opts['NoIntro_DAT_dir'])
+    DAT_FN = DAT_dir_FN.pjoin(collection['DAT'])
     DAT = common.load_XML_DAT_file(DAT_FN)
 
     # Scan files in ROM_dir.
@@ -93,13 +100,7 @@ def command_listcollections(options):
 def command_scan(options, collection_name):
     log_info('Scanning collection')
     configuration = common.parse_File_Config(options)
-
-    # Check if the configuration in the command line exists and do scanning.
-    if collection_name not in configuration.collections:
-        log_error('Collection "{}" not found in the configuration file.'.format(collection_name))
-        sys.exit(1)
-    collection = configuration.collections[collection_name]
-    set_list = perform_scanner(collection)
+    set_list = perform_scanner(configuration, collection_name)
 
     # Print scanner results (long list)
     print('\n=== Scanner long list ===')
@@ -129,8 +130,7 @@ def command_scanall(options):
     # Scan collection by collection.
     stats_list = []
     for collection_name in configuration.collections:
-        collection = configuration.collections[collection_name]
-        set_list = perform_scanner(collection)
+        set_list = perform_scanner(configuration, collection_name)
         stats = common.get_collection_statistics(set_list)
         stats['name'] = collection_name
         stats_list.append(stats)
@@ -152,13 +152,7 @@ def command_scanall(options):
 def command_fix(options, collection_name):
     log_info('Fixing collection')
     configuration = common.parse_File_Config(options)
-
-    # Check if the configuration in the command line exists and do scanning.
-    if collection_name not in configuration.collections:
-        log_error('Collection "{}" not found in the configuration file.'.format(collection_name))
-        sys.exit(1)
-    collection = configuration.collections[collection_name]
-    set_list = perform_scanner(collection)
+    set_list = perform_scanner(configuration, collection_name)
 
     # Fix sets.
     for set in set_list:
