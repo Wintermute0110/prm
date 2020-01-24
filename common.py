@@ -497,10 +497,8 @@ class DATfile:
         return num_ROMs
 
     def create_indices(self):
-        set_index = 0
-        for set in self.sets:
-            rom_index = 0
-            for ROM in set['ROMs']:
+        for i, set in enumerate(self.sets):
+            for j, ROM in enumerate(set['ROMs']):
                 if ROM['crc'] in self.crc_index:
                     log_error('In set {} ROM {}'.format(set['name'], ROM['name']))
                     log_error('Duplicated CRC {}'.format(ROM['crc']))
@@ -513,11 +511,9 @@ class DATfile:
                     log_error('In set {} ROM {}'.format(set['name'], ROM['name']))
                     log_error('Duplicated SHA1 {}'.format(ROM['sha1']))
                     sys.exit(2)
-                self.crc_index[ROM['crc']] = (set_index, rom_index)
-                self.md5_index[ROM['md5']] = (set_index, rom_index)
-                self.sha1_index[ROM['sha1']] = (set_index, rom_index)
-                rom_index += 1
-            set_index += 1
+                self.crc_index[ROM['crc']] = (i, j)
+                self.md5_index[ROM['md5']] = (i, j)
+                self.sha1_index[ROM['sha1']] = (i, j)
 
     def ROM_CRC_exists(self, crc):
         return crc in self.crc_index
