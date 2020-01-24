@@ -141,12 +141,12 @@ def command_scanall(options):
     for line in table_text: print(line)
 
 def command_fix(options, collection_name):
-    log_info('Fixing collection')
+    log_info('Fixing collection {}'.format(collection_name))
     configuration = common.parse_File_Config(options)
-    set_list = perform_scanner(configuration, collection_name)
+    collection = perform_scanner(configuration, collection_name)
 
     # Fix sets.
-    for set in set_list:
+    for set in collection.sets:
         if set.status == common.ROMset.SET_STATUS_BAD:
             common.fix_ROM_set(set)
 
@@ -170,8 +170,13 @@ Options:
 # -----------------------------------------------------------------------------
 print('\033[36mPython ROM Manager for No-Intro ROM sets\033[0m version ' + common.PRM_VERSION)
 
-# --- Initialise data directory
+# --- Initialise data and temp directories
 # This is used to store the results of scans for later display. Use JSON to store data.
+this_FN = FileName(__file__)
+data_dir_FN = FileName(this_FN.getDir()).pjoin('data')
+temp_dir_FN = FileName(this_FN.getDir()).pjoin('tmp')
+log_info('Data dir "{}"'.format(data_dir_FN.getPath()))
+log_info('Temp dir "{}"'.format(temp_dir_FN.getPath()))
 
 # --- Command line parser
 parser = argparse.ArgumentParser()

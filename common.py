@@ -773,13 +773,12 @@ def get_collection_statistics(set_list):
 # Fixes a ROM set with status SET_STATUS_BADNAME
 # Rename ZIP file and the single ROM in the ZIP file.
 def fix_ROM_set(set):
-    log_info('\nFixing set "{}"'.format(set.filename))
+    log_info('\nFixing set "{}"'.format(set.basename))
 
     # If set has not valid ROMs cannot be fixed.
     if not set.rom_list:
         log_info('Set has no ROMs, cannot be fixed.')
         return
-
     if set.rom_list[0]['status'] == ROMset.ROM_STATUS_UNKNOWN:
         log_info('Set has an unknown ROM, cannot be fixed.')
         return
