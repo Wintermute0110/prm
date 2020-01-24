@@ -603,12 +603,17 @@ class ROMcollection:
             set = get_ROM_set_status(filename, DAT)
             self.sets.append(set)
 
+        # Compute indices for fast access.
+        for i, rom_set in enumerate(self.sets):
+            log_debug('Index {:5d} Basename "{}"'.format(i, rom_set.basename))
+            self.basename_index[rom_set.basename] = i
+
         # Add missing ROMs.
         # Check if sets in DAT exists, if not it add it to the list.
-        log_info('\nAdding missing ROMs...')
+        log_info('Adding missing ROMs...')
         num_missing = 0
         for dat_set in DAT.sets:
-            log_info('Set name "{}"'.format(dat_set['name']))
+            # log_info('Set name "{}"'.format(dat_set['name']))
             set_zip_basename = dat_set['name'] + '.zip'
             if set_zip_basename not in self.basename_index:
                 set_filename = FileName(self.dirname).pjoin(set_zip_basename).getPath()
@@ -621,14 +626,12 @@ class ROMcollection:
                 rom_set.rom_list.append(rom)
                 self.sets.append(rom_set)
                 num_missing += 1
-            break
         log_info('Added {} missing sets.'.format(num_missing))
 
-        # Compute indices for fast access.
-        set_index = 0
-        for set in self.sets:
-            self.basename_index[set.basename] = set_index
-            set_index += 1
+        # Refresh indices after addition of missing ROMs.
+        for i, rom_set in enumerate(self.sets):
+            log_debug('Index {:5d} Basename "{}"'.format(i, rom_set.basename))
+            self.basename_index[rom_set.basename] = i
 
 # ROMset is a ZIP file that contains ROMs.
 class ROMset:

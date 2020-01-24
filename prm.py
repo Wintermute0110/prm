@@ -121,8 +121,8 @@ def command_scanall(options):
     # Scan collection by collection.
     stats_list = []
     for collection_name in configuration.collections:
-        set_list = perform_scanner(configuration, collection_name)
-        stats = common.get_collection_statistics(set_list)
+        collection = perform_scanner(configuration, collection_name)
+        stats = common.get_collection_statistics(collection.sets)
         stats['name'] = collection_name
         stats_list.append(stats)
 
