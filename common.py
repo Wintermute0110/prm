@@ -579,21 +579,76 @@ def load_XML_DAT_file(xml_FN):
 
     return DAT
 
+# Stores all sets in a ROM collection.
+class ROMcollection:
+    def __init__(self, dirname):
+        self.dirname = dirname
+        self.basename_index = {}
+        self.sets = [] # List of ROMset objects. May have unknown ROM sets.
+        self.file_list = [] # List of files with full path name.
+
+    # Scans files in self.dirname and fills self.file_list
+    def scan_files_in_dir(self):
+        ROM_dir_FN = FileName(self.dirname)
+        log_info('Scanning files in "{}"...'.format(ROM_dir_FN.getPath()))
+        if not ROM_dir_FN.exists():
+            log_error('Directory does not exist "{}"'.format(ROM_dir_FN.getPath()))
+            sys.exit(10)
+        self.file_list = ROM_dir_FN.recursiveScanFilesInPath('*')
+
+    # Fills self.sets and adds missing ROM sets.
+    def process_files(self, DAT):
+        # Determine status of the ROM sets (aka ZIP files).
+        for filename in sorted(self.file_list):
+            set = get_ROM_set_status(filename, DAT)
+            self.sets.append(set)
+
+        # Add missing ROMs.
+        # Check if sets in DAT exists, if not it add it to the list.
+        log_info('\nAdding missing ROMs...')
+        num_missing = 0
+        for dat_set in DAT.sets:
+            log_info('Set name "{}"'.format(dat_set['name']))
+            set_zip_basename = dat_set['name'] + '.zip'
+            if set_zip_basename not in self.basename_index:
+                set_filename = FileName(self.dirname).pjoin(set_zip_basename).getPath()
+                rom_set = ROMset(set_filename)
+                rom_set.status = ROMset.SET_STATUS_MISSING
+                rom = rom_set.new_rom()
+                rom['name'] = dat_set['ROMs'][0]['name']
+                rom['correct_name'] = dat_set['ROMs'][0]['name']
+                rom['status'] = ROMset.ROM_STATUS_MISSING
+                rom_set.rom_list.append(rom)
+                self.sets.append(rom_set)
+                num_missing += 1
+            break
+        log_info('Added {} missing sets.'.format(num_missing))
+
+        # Compute indices for fast access.
+        set_index = 0
+        for set in self.sets:
+            self.basename_index[set.basename] = set_index
+            set_index += 1
+
 # ROMset is a ZIP file that contains ROMs.
 class ROMset:
-    # Set contains a single known ROM with correct name.
-    SET_STATUS_GOOD    = 'Good   '
+    # Set GOOD contains a single known ROM with correct name.
+    # MISSING sets are fake, do not exist on disk.
     # A set can be bad because of many different reasons.
     # Set is not a ZIP file or the ZIP file is corrupted or any other error.
+    SET_STATUS_GOOD    = 'Good   '
+    SET_STATUS_MISSING = 'Missing'
     SET_STATUS_BAD     = 'Bad    '
 
     ROM_STATUS_GOOD    = 'Good   '
     ROM_STATUS_BADNAME = 'BadName'
+    ROM_STATUS_MISSING = 'Missing'
     ROM_STATUS_UNKNOWN = 'Unknown'
 
     def __init__(self, filename):
         self.filename = filename
-        # Set correct name is the current one until the proper one can be determined.
+        self.basename = FileName(filename).getBase()
+        # Set correct name is the current one until the proper name can be determined.
         self.correct_filename = filename
         self.status = None
         self.rom_list = []
@@ -613,7 +668,7 @@ def get_ROM_set_status(filename, DAT):
     set = ROMset(filename)
 
     # Open the ZIP file.
-    log_debug('\nProcessing "{}"'.format(filename))
+    log_debug('\nProcessing "{}"'.format(set.basename))
     try:
         zip_f = zipfile.ZipFile(filename, 'r')
     except zipfile.BadZipfile as e:
@@ -707,6 +762,7 @@ def get_collection_statistics(set_list):
         rom = set.rom_list[0]
         stats['total'] += 1
         if   rom['status'] == ROMset.ROM_STATUS_GOOD:    stats['have'] += 1
+        elif rom['status'] == ROMset.ROM_STATUS_MISSING: stats['miss'] += 1
         elif rom['status'] == ROMset.ROM_STATUS_BADNAME: stats['badname'] += 1
         elif rom['status'] == ROMset.ROM_STATUS_UNKNOWN: stats['unknown'] += 1
         else:
