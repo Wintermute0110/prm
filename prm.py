@@ -155,7 +155,7 @@ def command_usage():
 
 Commands:
 usage                    Print usage information (this text).
-listcollections          Display ROM collections in the configuration file.
+list                     Display ROM collections in the configuration file.
 scan COLLECTION          Scan ROM_dir in a collection and print results.
 scanall                  Scan all the collections.
 fix COLLECTION           Fixes sets in ROM_dir in a collection.
@@ -192,7 +192,7 @@ options = process_arguments(args)
 command = args.command[0]
 if command == 'usage':
     command_usage()
-elif command == 'listcollections':
+elif command == 'list':
     command_listcollections(options)
 elif command == 'scan':
     collection_name = args.collection
