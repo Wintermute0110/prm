@@ -17,6 +17,7 @@
 
 # --- Python standard library --------------------------------------------------------------------
 import argparse
+import os
 import pickle
 import pprint
 import sys
@@ -140,7 +141,7 @@ def command_status(options, collection_name):
     f.close()
 
     # Print scanner summary.
-    stats = common.get_collection_statistics(collection.sets)
+    stats = common.get_collection_statistics(collection)
     print('\n=== Scanner summary for collection "{}" ==='.format(collection_name))
     print('Total SETs in DAT {:5,}'.format(stats['total_DAT']))
     print('Total SETs        {:5,}'.format(stats['total']))
@@ -280,12 +281,20 @@ def command_fix(options, collection_name):
     log_info('Fixing collection {}'.format(collection_name))
     configuration = common.parse_File_Config(options)
     collection = perform_scanner(configuration, collection_name)
-
-    # Fix sets.
     for set in collection.sets:
         if set.status == common.ROMset.SET_STATUS_BADNAME:
             common.fix_ROM_set(set)
+    # Rescan collection and store results in chache.
+    command_scan(options, collection_name)
 
+def command_deleteUnknown(options, collection_name):
+    log_info('Deleting Unknown SETs in collection {}'.format(collection_name))
+    configuration = common.parse_File_Config(options)
+    collection = perform_scanner(configuration, collection_name)
+    for set in collection.sets:
+        if set.status == common.ROMset.SET_STATUS_UNKNOWN:
+            print('Deleting {}'.format(set.filename))
+            os.remove(set.filename)
     # Rescan collection and store results in chache.
     command_scan(options, collection_name)
 
@@ -360,6 +369,7 @@ elif command == 'listUnknown': command_listStuff(options, args.collection, LIST_
 elif command == 'listError': command_listStuff(options, args.collection, LIST_ERROR)
 
 elif command == 'fix': command_fix(options, args.collection)
+elif command == 'deleteUnknown': command_deleteUnknown(options, args.collection)
 
 else:
     print('\033[31m[ERROR]\033[0m Unrecognised command "{}"'.format(command))
