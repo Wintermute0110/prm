@@ -111,7 +111,7 @@ def command_scan(options, collection_name):
     print('Error SETs    {:5,}'.format(-1))
 
 def command_scanall(options):
-    log_info('Scanning collection')
+    log_info('Scanning all collections')
     configuration = common.parse_File_Config(options)
 
     # Scan collection by collection.

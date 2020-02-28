@@ -9,12 +9,12 @@
 
  * [DONE] Command listIssues COLLECTION displays BadName/Missing/Unknown/Error ROMs.
 
- * Command viewall to report the results of a scan.
+ * [DONE] Command viewall to report the results of a scan.
 
- * Decompress ZIP data to calculate hashes and used SHA1 as main hash.
+ * [DONE] Decompress ZIP data to calculate hashes and used SHA1 as main hash.
    Do not use the CRC value in ZIP files.
 
- * Implement the header mechanism needed for FDS and NES platforms.
+ * [DONE] Implement the header mechanism needed for FDS and NES platforms.
 
  * What to do with Unknown ROMs? ROM leftover directory? Move them to ROM incoming directory?
 

@@ -391,6 +391,7 @@ class ConfigFile:
     collection_tag_set = [
         'name',
         'platform',
+        'HeaderOffsetBytes',
         'DAT',
         'ROM_dir',
     ]
@@ -413,6 +414,7 @@ class ConfigFile:
         return OrderedDict([
             ('name', ''),
             ('platform', ''),
+            ('HeaderOffsetBytes', 0),
             ('DAT', ''),
             ('ROM_dir', ''),
         ])
@@ -448,7 +450,12 @@ def parse_File_Config(options):
                     print('[ERROR] On <collection> section')
                     print('[ERROR] Unrecognised tag <{}>'.format(xml_tag))
                     sys.exit(10)
-                collection[xml_tag] = xml_text
+                if xml_tag == 'HeaderOffsetBytes':
+                    # Convert data types if not string.
+                    collection[xml_tag] = int(xml_text)
+                else:
+                    # By default all tag context is string.
+                    collection[xml_tag] = xml_text
             filter_name = collection['name']
             if not filter_name:
                     print('[ERROR] Collection has empty <name> tag.')
@@ -581,6 +588,7 @@ def load_XML_DAT_file(xml_FN):
 class ROMcollection:
     def __init__(self, collection_conf):
         self.name = collection_conf['name'] # Collection <name>
+        self.offsetBytes = collection_conf['HeaderOffsetBytes'] # Collection <HeaderOffsetBytes>
         self.dirname = collection_conf['ROM_dir'] # <ROM_dir>
         self.basename_index = {}
         self.sets = [] # List of ROMset objects. May have unknown ROM sets.
@@ -589,7 +597,8 @@ class ROMcollection:
     # Scans files in self.dirname and fills self.file_list
     def scan_files_in_dir(self):
         ROM_dir_FN = FileName(self.dirname)
-        log_info('Scanning files in "{}"...'.format(ROM_dir_FN.getPath()))
+        log_info('\nScanning files in "{}"...'.format(ROM_dir_FN.getPath()))
+        log_info('HeaderOffsetBytes {}'.format(self.offsetBytes))
         if not ROM_dir_FN.exists():
             log_error('Directory does not exist "{}"'.format(ROM_dir_FN.getPath()))
             sys.exit(10)
@@ -599,7 +608,7 @@ class ROMcollection:
     def process_files(self, DAT):
         # Determine status of the ROM sets (aka ZIP files).
         for filename in sorted(self.file_list):
-            set = get_ROM_set_status(filename, DAT)
+            set = get_ROM_set_status(filename, DAT, self.offsetBytes)
             self.sets.append(set)
 
         # Compute indices for fast access.
@@ -701,7 +710,7 @@ def misc_calculate_stream_checksums(file_bytes):
 
     return checksums
 
-def get_ROM_set_status(filename, DAT):
+def get_ROM_set_status(filename, DAT, offsetBytes):
     set = ROMset(filename)
 
     # Open the ZIP file.
@@ -724,9 +733,8 @@ def get_ROM_set_status(filename, DAT):
     for zfilename in zip_f.namelist():
         # Decompress and calculate hashes and size.
         buffer = zip_f.read(zfilename)
-        # Skip header if necessary.
-        # buffer = buffer[16:]
-        checksums = misc_calculate_stream_checksums(buffer)
+        # Skip ROM header if necessary.
+        checksums = misc_calculate_stream_checksums(buffer[offsetBytes:])
         log_debug('zfilename   "{}" size {:,}'.format(zfilename, checksums['size']))
         rom = set.new_rom()
         rom['name'] = zfilename
