@@ -101,14 +101,15 @@ def command_scan(options, collection_name):
     f.close()
 
     # Print scanner summary.
-    stats = common.get_collection_statistics(collection.sets)
+    stats = common.get_collection_statistics(collection)
     print('\n=== Scanner summary for collection "{}" ==='.format(collection_name))
-    print('Total SETs    {:5,}'.format(stats['total']))
-    print('Have SETs     {:5,}'.format(stats['have']))
-    print('Badname SETs  {:5,}'.format(stats['badname']))
-    print('Miss SETs     {:5,}'.format(stats['missing']))
-    print('Unknown SETs  {:5,}'.format(stats['unknown']))
-    print('Error SETs    {:5,}'.format(stats['error']))
+    print('Total SETs in DAT {:5,}'.format(stats['total_DAT']))
+    print('Total SETs        {:5,}'.format(stats['total']))
+    print('Have SETs         {:5,}'.format(stats['have']))
+    print('Badname SETs      {:5,}'.format(stats['badname']))
+    print('Miss SETs         {:5,}'.format(stats['missing']))
+    print('Unknown SETs      {:5,}'.format(stats['unknown']))
+    print('Error SETs        {:5,}'.format(stats['error']))
 
 def command_scanall(options):
     log_info('Scanning all collections')
@@ -141,12 +142,13 @@ def command_status(options, collection_name):
     # Print scanner summary.
     stats = common.get_collection_statistics(collection.sets)
     print('\n=== Scanner summary for collection "{}" ==='.format(collection_name))
-    print('Total SETs    {:5,}'.format(stats['total']))
-    print('Have SETs     {:5,}'.format(stats['have']))
-    print('Badname SETs  {:5,}'.format(stats['badname']))
-    print('Miss SETs     {:5,}'.format(stats['missing']))
-    print('Unknown SETs  {:5,}'.format(stats['unknown']))
-    print('Error SETs    {:5,}'.format(stats['error']))
+    print('Total SETs in DAT {:5,}'.format(stats['total_DAT']))
+    print('Total SETs        {:5,}'.format(stats['total']))
+    print('Have SETs         {:5,}'.format(stats['have']))
+    print('Badname SETs      {:5,}'.format(stats['badname']))
+    print('Miss SETs         {:5,}'.format(stats['missing']))
+    print('Unknown SETs      {:5,}'.format(stats['unknown']))
+    print('Error SETs        {:5,}'.format(stats['error']))
 
 def command_statusall(options):
     log_info('View all collections scan results')
@@ -164,20 +166,19 @@ def command_statusall(options):
         f = open(scan_FN.getPath(), 'rb')
         collection = pickle.load(f)
         f.close()
-        stats = common.get_collection_statistics(collection.sets)
-        stats['name'] = collection_name
+        stats = common.get_collection_statistics(collection)
         stats_list.append(stats)
 
     # Print results.
     table_str = [
         ['left', 'left', 'left', 'left', 'left', 'left', 'left'],
-        ['Collection', 'Total ROMs', 'Have ROMs', 'BadName ROMs',
-         'Miss ROMs', 'Unknown ROMs', 'Error files'],
+        ['Collection', 'DAT SETs', 'Total ROMs', 'Have ROMs',
+         'BadName ROMs', 'Miss ROMs', 'Unknown ROMs', 'Error files'],
     ]
     for stats in stats_list:
         table_str.append([
-            str(stats['name']), str(stats['total']), str(stats['have']), str(stats['badname']),
-            str(stats['missing']), str(stats['unknown']), str(stats['error']),
+            str(stats['name']), str(stats['total_DAT']), str(stats['total']), str(stats['have']),
+            str(stats['badname']), str(stats['missing']), str(stats['unknown']), str(stats['error']),
         ])
     table_text = common.text_render_table(table_str)
     print('')
@@ -239,8 +240,11 @@ def command_fix(options, collection_name):
 
     # Fix sets.
     for set in collection.sets:
-        if set.status == common.ROMset.SET_STATUS_BAD:
+        if set.status == common.ROMset.SET_STATUS_BADNAME:
             common.fix_ROM_set(set)
+
+    # Rescan collection and store results in chache.
+    command_scan(options, collection_name)
 
 def command_usage():
   print("""Usage: prm.py [options] COMMAND [COLLECTION]

@@ -590,6 +590,7 @@ class ROMcollection:
         self.name = collection_conf['name'] # Collection <name>
         self.offsetBytes = collection_conf['HeaderOffsetBytes'] # Collection <HeaderOffsetBytes>
         self.dirname = collection_conf['ROM_dir'] # <ROM_dir>
+        self.num_DAT_sets = 0
         self.basename_index = {}
         self.sets = [] # List of ROMset objects. May have unknown ROM sets.
         self.file_list = [] # List of files in ROM_dir with full path name.
@@ -597,8 +598,8 @@ class ROMcollection:
     # Scans files in self.dirname and fills self.file_list
     def scan_files_in_dir(self):
         ROM_dir_FN = FileName(self.dirname)
-        log_info('\nScanning files in "{}"...'.format(ROM_dir_FN.getPath()))
         log_info('HeaderOffsetBytes {}'.format(self.offsetBytes))
+        log_info('Scanning files in "{}"...'.format(ROM_dir_FN.getPath()))
         if not ROM_dir_FN.exists():
             log_error('Directory does not exist "{}"'.format(ROM_dir_FN.getPath()))
             sys.exit(10)
@@ -606,6 +607,8 @@ class ROMcollection:
 
     # Fills self.sets and adds missing ROM sets.
     def process_files(self, DAT):
+        self.num_DAT_sets = len(DAT.sets)
+
         # Determine status of the ROM sets (aka ZIP files).
         for filename in sorted(self.file_list):
             set = get_ROM_set_status(filename, DAT, self.offsetBytes)
@@ -817,8 +820,9 @@ def get_ROM_set_status(filename, DAT, offsetBytes):
 
     return set
 
-def get_collection_statistics(set_list):
+def get_collection_statistics(collection):
     stats = {
+        'name' : '',
         'total' : 0,
         'have' : 0,
         'badname' : 0,
@@ -827,7 +831,9 @@ def get_collection_statistics(set_list):
         'error' : 0,
     }
 
-    for set in set_list:
+    stats['name'] = collection.name
+    stats['total_DAT'] = collection.num_DAT_sets
+    for set in collection.sets:
         stats['total'] += 1
         if   set.status == ROMset.SET_STATUS_GOOD:    stats['have']    += 1
         elif set.status == ROMset.SET_STATUS_BADNAME: stats['badname'] += 1
