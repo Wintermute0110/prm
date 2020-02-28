@@ -125,7 +125,7 @@ def command_scanall(options):
         pickle.dump(collection, f)
         f.close()
 
-def command_view(options, collection_name):
+def command_status(options, collection_name):
     log_info('View collection scan results')
     # Load collection scanner data.
     scan_FN = options.data_dir_FN.pjoin(collection_name + '_scan.bin')
@@ -148,7 +148,7 @@ def command_view(options, collection_name):
     print('Unknown SETs  {:5,}'.format(stats['unknown']))
     print('Error SETs    {:5,}'.format(stats['error']))
 
-def command_viewall(options):
+def command_statusall(options):
     log_info('View all collections scan results')
     configuration = common.parse_File_Config(options)
 
@@ -250,12 +250,10 @@ usage                    Print usage information (this text).
 list                     Display ROM collections in the configuration file.
 scan COLLECTION          Scan ROM_dir in a collection and print results.
 scanall                  Scan all the collections.
-
-view COLLECTION
-viewall
-listROMs COLLECTION
-listIssues COLLECTION
-
+status COLLECTION        View scanner results.
+statusall                View scanner results for all collections.
+listROMs COLLECTION      List SETs of a collection with status.
+listIssues COLLECTION    List SETs with issues (BadName, Missing, Unknown, Error).
 fix COLLECTION           Fixes sets in ROM_dir in a collection.
 
 Options:
@@ -300,10 +298,10 @@ elif command == 'scan':
 elif command == 'scanall':
     command_scanall(options)
 
-elif command == 'view':
-    command_view(options, args.collection)
-elif command == 'viewall':
-    command_viewall(options)
+elif command == 'status':
+    command_status(options, args.collection)
+elif command == 'statusall':
+    command_statusall(options)
 
 elif command == 'listROMs':
     command_listROMs(options, args.collection)
