@@ -199,7 +199,7 @@ def command_listROMs(options, collection_name):
     # Print scanner results (long list)
     print('\n=== Scanner long list ===')
     for set in collection.sets:
-        log_info('SET {} "{}"'.format(set.status, set.basename))
+        log_info('\033[91mSET\033[0m {} "{}"'.format(set.status, set.basename))
         for rom in set.rom_list:
             if rom['status'] == common.ROMset.ROM_STATUS_BADNAME:
                 log_info('ROM {} "{}" -> "{}"'.format(
@@ -224,7 +224,7 @@ def command_listIssues(options, collection_name):
     print('\n=== Scanner long list ===')
     for set in collection.sets:
         if set.status == common.ROMset.SET_STATUS_GOOD: continue
-        log_info('SET {} "{}"'.format(set.status, set.basename))
+        log_info('\033[91mSET\033[0m {} "{}"'.format(set.status, set.basename))
         for rom in set.rom_list:
             if rom['status'] == common.ROMset.ROM_STATUS_BADNAME:
                 log_info('ROM {} "{}" -> "{}"'.format(
