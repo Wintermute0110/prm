@@ -650,13 +650,20 @@ class ROMcollection:
 
 # ROMset is a ZIP file that contains ROMs.
 class ROMset:
-    # Set GOOD contains a single known ROM with correct name.
-    # MISSING sets are fake, do not exist on disk.
-    # A set can be bad because of many different reasons.
-    # Set is not a ZIP file or the ZIP file is corrupted or any other error.
+    # * Set GOOD contains a single known ROM with correct name.
+    # * Set BADNAME contains a single known ROM and either the ROM or the set name is wrong.
+    # * Set UNKNOWN contains a single unknown ROM.
+    # * MISSING sets are fake, do not exist on disk.
+    # * A set can be BAD because of many different reasons:
+    #   1. Set is not a ZIP file.
+    #   2. The set ZIP file is corrupted or any other error.
+    #   3. The set ZIP file has 2 or more files or is empty.
+    # * Only BADNAME sets are fixable at the moment.
     SET_STATUS_GOOD    = 'Good   '
+    SET_STATUS_BADNAME = 'BadName'
     SET_STATUS_MISSING = 'Missing'
-    SET_STATUS_BAD     = 'Bad    '
+    SET_STATUS_UNKNOWN = 'Unknown'
+    SET_STATUS_ERROR   = 'Error  '
 
     ROM_STATUS_GOOD    = 'Good   '
     ROM_STATUS_BADNAME = 'BadName'
@@ -710,6 +717,9 @@ def misc_calculate_stream_checksums(file_bytes):
 
     return checksums
 
+# This function assumes sets (ZIP files) contain 1 ROM. Otherwise it is an error.
+# For MAME ZIP files another function is required.
+# Also, NoIntro sets with severe errors require a more sofisticated function.
 def get_ROM_set_status(filename, DAT, offsetBytes):
     set = ROMset(filename)
 
@@ -718,7 +728,7 @@ def get_ROM_set_status(filename, DAT, offsetBytes):
     try:
         zip_f = zipfile.ZipFile(filename, 'r')
     except zipfile.BadZipfile as e:
-        set.status = ROMset.SET_STATUS_BAD
+        set.status = ROMset.SET_STATUS_ERROR
         return set
 
     # ZIP file must have one and only one file.
@@ -726,72 +736,82 @@ def get_ROM_set_status(filename, DAT, offsetBytes):
     num_zip_files = len(zip_f.namelist())
     log_debug('zip file contains {} files'.format(num_zip_files))
     if num_zip_files != 1:
-        set.status = ROMset.SET_STATUS_BAD
+        set.status = ROMset.SET_STATUS_ERROR
         return set
+    zfilename = zip_f.namelist()[0]
 
-    # Build ROM list in set.
-    for zfilename in zip_f.namelist():
-        # Decompress and calculate hashes and size.
-        buffer = zip_f.read(zfilename)
-        # Skip ROM header if necessary.
-        checksums = misc_calculate_stream_checksums(buffer[offsetBytes:])
-        log_debug('zfilename   "{}" size {:,}'.format(zfilename, checksums['size']))
-        rom = set.new_rom()
-        rom['name'] = zfilename
-        rom['correct_name'] = zfilename
-        rom['size'] = checksums['size']
-        rom['crc'] = checksums['crc']
-        rom['md5'] = checksums['md5']
-        rom['sha1'] = checksums['sha1']
-        set.rom_list.append(rom)
+    # --- Build ROM list in set and calculate checksums ---
+    # Decompress and calculate hashes and size.
+    buffer = zip_f.read(zfilename)
+    # Skip ROM header if necessary.
+    checksums = misc_calculate_stream_checksums(buffer[offsetBytes:])
+    log_debug('zfilename   "{}" size {:,}'.format(zfilename, checksums['size']))
+    rom = set.new_rom()
+    rom['name'] = zfilename
+    rom['correct_name'] = zfilename
+    rom['size'] = checksums['size']
+    rom['crc'] = checksums['crc']
+    rom['md5'] = checksums['md5']
+    rom['sha1'] = checksums['sha1']
+    set.rom_list.append(rom)
     zip_f.close()
 
-    # Determine status of each ROM.
-    for rom in set.rom_list:
-        # Should we trust the CRC in the ZIP file or should we decompress the data
-        # and calculate our own checksums? For now trust the CRC value of the ZIP file.
-        if DAT.ROM_CRC_exists(rom['crc']):
-            # If ROM found check if filename is correct.
-            datrom = DAT.get_ROM_CRC(rom['crc'])
-            if rom['name'] == datrom['name']:
-                rom['status'] = ROMset.ROM_STATUS_GOOD
-                log_debug('ROM {} "{}"'.format(rom['status'], rom['name']))
-            else:
-                rom['status'] = ROMset.ROM_STATUS_BADNAME
-                rom['correct_name'] = datrom['name']
-                c_rom_name_FN = FileName(datrom['name'])
-                set_FN = FileName(set.filename)
-                c_set_FN = FileName(set_FN.getDir())
-                c_set_FN = c_set_FN.pjoin(c_rom_name_FN.getBase_noext() + '.zip')
-                set.correct_filename = c_set_FN.getPath()
-                log_debug('ROM {} "{}"'.format(rom['status'], rom['name']))
-                log_debug('Good Name   "{}"'.format(datrom['name']))
-        else:
-            # ROM not found.
-            rom['status'] = ROMset.ROM_STATUS_UNKNOWN
+    # --- Determine status of the single ROM ---
+    rom = set.rom_list[0]
+    if DAT.ROM_CRC_exists(rom['crc']):
+        # If ROM found check if filename is correct.
+        datrom = DAT.get_ROM_CRC(rom['crc'])
+        if rom['name'] == datrom['name']:
+            rom['status'] = ROMset.ROM_STATUS_GOOD
             log_debug('ROM {} "{}"'.format(rom['status'], rom['name']))
+        else:
+            rom['status'] = ROMset.ROM_STATUS_BADNAME
+            rom['correct_name'] = datrom['name']
+            c_rom_name_FN = FileName(datrom['name'])
+            set_FN = FileName(set.filename)
+            c_set_FN = FileName(set_FN.getDir())
+            c_set_FN = c_set_FN.pjoin(c_rom_name_FN.getBase_noext() + '.zip')
+            set.correct_filename = c_set_FN.getPath()
+            log_debug('ROM {} "{}"'.format(rom['status'], rom['name']))
+            log_debug('Good Name   "{}"'.format(datrom['name']))
+    else:
+        # ROM not found.
+        rom['status'] = ROMset.ROM_STATUS_UNKNOWN
+        log_debug('ROM {} "{}"'.format(rom['status'], rom['name']))
 
-    # Determine set correct name.
-    C_ROM_FN = FileName(set.rom_list[0]['correct_name'])
-    set_FN = FileName(set.filename)
-    C_set_FN = FileName(set_FN.getDir()).pjoin(C_ROM_FN.getBase_noext() + '.zip')
-    log_debug('Set name    "{}"'.format(set_FN.getPath()))
-    log_debug('Good name   "{}"'.format(C_set_FN.getPath()))
-    set.correct_filename = C_set_FN.getPath()
-
-    # Determine status of set based on ROM status.
-    rom_status_list = [rom['status'] == ROMset.ROM_STATUS_GOOD for rom in set.rom_list]
-    if not all(rom_status_list):
-        log_debug('Set status BAD. Not all ROMs are good.')
-        set.status = ROMset.SET_STATUS_BAD
+    # --- Determine status of SET ---
+    # If the ROM has a bad name mark the set as bad name.
+    if rom['status'] == ROMset.ROM_STATUS_BADNAME:
+        log_debug('Set status BADNAME. ROM wrong filename.')
+        set.status = ROMset.SET_STATUS_BADNAME
         return set
 
-    # Check if set name has the correct name.
-    # The set name must be the same as the correct ROM name.
-    if set_FN.getPath() != C_set_FN.getPath():
-        log_debug('Set status BAD. Wrong ZIP filename.')
-        set.status = ROMset.SET_STATUS_BAD
+    # If the ROM is Unknown mark the set as unknown
+    elif rom['status'] == ROMset.ROM_STATUS_UNKNOWN:
+        log_debug('Set status UNKNOWN. ROM unknown.')
+        set.status = ROMset.SET_STATUS_UNKNOWN
         return set
+
+    # If the ROM is good check if set has the correct name.
+    # Mark it BADNAME if set name is incorrect.
+    # This is a unusual case.
+    elif rom['status'] == ROMset.ROM_STATUS_GOOD:
+        # Determine SET correct name.
+        C_ROM_FN = FileName(rom['correct_name'])
+        set_FN = FileName(set.filename)
+        C_set_FN = FileName(set_FN.getDir()).pjoin(C_ROM_FN.getBase_noext() + '.zip')
+        log_debug('Set name    "{}"'.format(set_FN.getPath()))
+        log_debug('Good name   "{}"'.format(C_set_FN.getPath()))
+        set.correct_filename = C_set_FN.getPath()
+
+        # Check if set name has the correct name.
+        # The set name must be the same as the correct ROM name.
+        if set_FN.getPath() != C_set_FN.getPath():
+            log_debug('Set status BADNAME. ROM filename good, wrong ZIP filename.')
+            set.status = ROMset.ROM_STATUS_BADNAME
+            return set
+
+    # If we reach this pint the set is good.
     set.status = ROMset.SET_STATUS_GOOD
     log_debug('Set status GOOD')
 
@@ -801,21 +821,21 @@ def get_collection_statistics(set_list):
     stats = {
         'total' : 0,
         'have' : 0,
-        'miss' : 0,
         'badname' : 0,
+        'missing' : 0,
         'unknown' : 0,
+        'error' : 0,
     }
 
     for set in set_list:
-        if not set.rom_list: continue
-        rom = set.rom_list[0]
         stats['total'] += 1
-        if   rom['status'] == ROMset.ROM_STATUS_GOOD:    stats['have'] += 1
-        elif rom['status'] == ROMset.ROM_STATUS_MISSING: stats['miss'] += 1
-        elif rom['status'] == ROMset.ROM_STATUS_BADNAME: stats['badname'] += 1
-        elif rom['status'] == ROMset.ROM_STATUS_UNKNOWN: stats['unknown'] += 1
+        if   set.status == ROMset.SET_STATUS_GOOD:    stats['have']    += 1
+        elif set.status == ROMset.SET_STATUS_BADNAME: stats['badname'] += 1
+        elif set.status == ROMset.SET_STATUS_MISSING: stats['missing'] += 1
+        elif set.status == ROMset.SET_STATUS_UNKNOWN: stats['unknown'] += 1
+        elif set.status == ROMset.SET_STATUS_ERROR:   stats['error']   += 1
         else:
-            log_error('Unrecognised ROM status. Logical error.')
+            log_error('Unrecognised SET status. Logical error.')
             sys.exit(10)
 
     return stats

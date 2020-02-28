@@ -102,13 +102,13 @@ def command_scan(options, collection_name):
 
     # Print scanner summary.
     stats = common.get_collection_statistics(collection.sets)
-    print('\n=== Scanner summary for collection {} ==='.format(collection_name))
-    print('Total ROMs    {:5,}'.format(stats['total']))
-    print('Have ROMs     {:5,}'.format(stats['have']))
-    print('Badname ROMs  {:5,}'.format(stats['badname']))
-    print('Miss ROMs     {:5,}'.format(stats['miss']))
-    print('Unknown ROMs  {:5,}'.format(stats['unknown']))
-    print('Error SETs    {:5,}'.format(-1))
+    print('\n=== Scanner summary for collection "{}" ==='.format(collection_name))
+    print('Total SETs    {:5,}'.format(stats['total']))
+    print('Have SETs     {:5,}'.format(stats['have']))
+    print('Badname SETs  {:5,}'.format(stats['badname']))
+    print('Miss SETs     {:5,}'.format(stats['missing']))
+    print('Unknown SETs  {:5,}'.format(stats['unknown']))
+    print('Error SETs    {:5,}'.format(stats['error']))
 
 def command_scanall(options):
     log_info('Scanning all collections')
@@ -140,13 +140,13 @@ def command_view(options, collection_name):
 
     # Print scanner summary.
     stats = common.get_collection_statistics(collection.sets)
-    print('\n=== Scanner summary for collection {} ==='.format(collection_name))
-    print('Total ROMs    {:5,}'.format(stats['total']))
-    print('Have ROMs     {:5,}'.format(stats['have']))
-    print('Badname ROMs  {:5,}'.format(stats['badname']))
-    print('Miss ROMs     {:5,}'.format(stats['miss']))
-    print('Unknown ROMs  {:5,}'.format(stats['unknown']))
-    print('Error SETs    {:5,}'.format(-1))
+    print('\n=== Scanner summary for collection "{}" ==='.format(collection_name))
+    print('Total SETs    {:5,}'.format(stats['total']))
+    print('Have SETs     {:5,}'.format(stats['have']))
+    print('Badname SETs  {:5,}'.format(stats['badname']))
+    print('Miss SETs     {:5,}'.format(stats['missing']))
+    print('Unknown SETs  {:5,}'.format(stats['unknown']))
+    print('Error SETs    {:5,}'.format(stats['error']))
 
 def command_viewall(options):
     log_info('View all collections scan results')
@@ -172,12 +172,12 @@ def command_viewall(options):
     table_str = [
         ['left', 'left', 'left', 'left', 'left', 'left', 'left'],
         ['Collection', 'Total ROMs', 'Have ROMs', 'BadName ROMs',
-         'Miss ROMs', 'Unknown ROMs', 'Bad files'],
+         'Miss ROMs', 'Unknown ROMs', 'Error files'],
     ]
     for stats in stats_list:
         table_str.append([
             str(stats['name']), str(stats['total']), str(stats['have']), str(stats['badname']),
-            str(stats['miss']), str(stats['unknown']), '---',
+            str(stats['missing']), str(stats['unknown']), str(stats['error']),
         ])
     table_text = common.text_render_table(table_str)
     print('')
