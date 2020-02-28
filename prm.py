@@ -139,7 +139,6 @@ def command_scanall(options):
 
 def command_view(options, collection_name):
     log_info('View collection scan results')
-    # configuration = common.parse_File_Config(options)
     # Load collection scanner data.
     scan_FN = options.data_dir_FN.pjoin(collection_name + '_scan.bin')
     if not scan_FN.exists():
@@ -168,7 +167,16 @@ def command_viewall(options, collection_name):
 
 def command_listROMs(options, collection_name):
     log_info('List collection scanned ROMs')
-    configuration = common.parse_File_Config(options)
+    # Load collection scanner data.
+    scan_FN = options.data_dir_FN.pjoin(collection_name + '_scan.bin')
+    if not scan_FN.exists():
+        print('Not found {}'.format(scan_FN.getPath()))
+        print('Exiting')
+        sys.exit(1)
+    print('Loading scanner results in "{}"'.format(scan_FN.getPath()))
+    f = open(scan_FN.getPath(), 'rb')
+    collection = pickle.load(f)
+    f.close()
 
     # Print scanner results (long list)
     print('\n=== Scanner long list ===')
@@ -183,8 +191,28 @@ def command_listROMs(options, collection_name):
 
 def command_listIssues(options, collection_name):
     log_info('List collection scanned ROMs with issues')
-    configuration = common.parse_File_Config(options)
+    # Load collection scanner data.
+    scan_FN = options.data_dir_FN.pjoin(collection_name + '_scan.bin')
+    if not scan_FN.exists():
+        print('Not found {}'.format(scan_FN.getPath()))
+        print('Exiting')
+        sys.exit(1)
+    print('Loading scanner results in "{}"'.format(scan_FN.getPath()))
+    f = open(scan_FN.getPath(), 'rb')
+    collection = pickle.load(f)
+    f.close()
 
+    # Print scanner results (long list)
+    print('\n=== Scanner long list ===')
+    for set in collection.sets:
+        if set.status == common.ROMset.SET_STATUS_GOOD: continue
+        log_info('SET {} "{}"'.format(set.status, set.basename))
+        for rom in set.rom_list:
+            if rom['status'] == common.ROMset.ROM_STATUS_BADNAME:
+                log_info('ROM {} "{}" -> "{}"'.format(
+                    rom['status'], rom['name'], rom['correct_name']))
+            else:
+                log_info('ROM {} "{}"'.format(rom['status'], rom['name']))
 
 def command_fix(options, collection_name):
     log_info('Fixing collection {}'.format(collection_name))
@@ -204,6 +232,12 @@ usage                    Print usage information (this text).
 list                     Display ROM collections in the configuration file.
 scan COLLECTION          Scan ROM_dir in a collection and print results.
 scanall                  Scan all the collections.
+
+view COLLECTION
+viewall
+listROMs COLLECTION
+listIssues COLLECTION
+
 fix COLLECTION           Fixes sets in ROM_dir in a collection.
 
 Options:
@@ -256,7 +290,7 @@ elif command == 'viewall':
 elif command == 'listROMs':
     command_listROMs(options, args.collection)
 elif command == 'listIssues':
-    command_listIssues(options)
+    command_listIssues(options, args.collection)
 
 elif command == 'fix':
     command_fix(options, args.collection)
