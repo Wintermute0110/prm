@@ -17,6 +17,7 @@
 
 # --- Python standard library --------------------------------------------------------------------
 import argparse
+import pickle
 import pprint
 import sys
 
@@ -29,7 +30,7 @@ from common import ROMcollection
 # --- Class with program options and settings ----------------------------------------------------
 class Options:
     def __init__(self):
-        self.config_file_name = 'configuration.xml'
+        self.config_file_name = 'configuration-dev.xml'
 
 # Process the program options in variable args. Returns an Options object.
 def process_arguments(args):
@@ -59,7 +60,7 @@ def perform_scanner(configuration, collection_name):
     DAT = common.load_XML_DAT_file(DAT_FN)
 
     # Scan files in ROM_dir.
-    collection = ROMcollection(collection_conf['ROM_dir'])
+    collection = ROMcollection(collection_conf )
     collection.scan_files_in_dir()
     collection.process_files(DAT)
 
@@ -92,6 +93,12 @@ def command_scan(options, collection_name):
     log_info('Scanning collection')
     configuration = common.parse_File_Config(options)
     collection = perform_scanner(configuration, collection_name)
+    # Save scanner results for later.
+    scan_FN = options.data_dir_FN.pjoin(collection.name + '_scan.bin')
+    print('Saving scanner results in "{}"'.format(scan_FN.getPath()))
+    f = open(scan_FN.getPath(), 'wb')
+    pickle.dump(collection, f)
+    f.close()
 
     # Print scanner results (long list)
     print('\n=== Scanner long list ===')
@@ -128,13 +135,14 @@ def command_scanall(options):
 
     # Print results.
     table_str = [
-        ['left', 'left', 'left', 'left', 'left', 'left'],
-        ['Collection', 'Total ROMs', 'Have ROMs', 'Miss ROMs', 'BadName ROMs', 'Unknown ROMs'],
+        ['left', 'left', 'left', 'left', 'left', 'left', 'left'],
+        ['Collection', 'Total ROMs', 'Have ROMs', 'BadName ROMs',
+         'Miss ROMs', 'Unknown ROMs', 'Bad files'],
     ]
     for stats in stats_list:
         table_str.append([
-            str(stats['name']), str(stats['total']), str(stats['have']),
-            str(stats['miss']), str(stats['badname']), str(stats['unknown']),
+            str(stats['name']), str(stats['total']), str(stats['have']), str(stats['badname']),
+            str(stats['miss']), str(stats['unknown']), '---',
         ])
     table_text = common.text_render_table(table_str)
     print('')
@@ -186,6 +194,8 @@ parser.add_argument('command', help = 'Main action to do', nargs = 1)
 parser.add_argument('collection', help = 'ROM collection name', nargs = '?')
 args = parser.parse_args()
 options = process_arguments(args)
+options.data_dir_FN = data_dir_FN
+options.temp_dir_FN = temp_dir_FN
 # pprint.pprint(args)
 
 # --- Positional arguments that don't require a filterName

@@ -1,15 +1,18 @@
 ## TODO
 
+ * [WIP] Store the results of a scan operation on a JSON file to be checked out later.
+   The pickle module could be much better than JSON.
+
+ * Command view COLLECTION/viewall to report the results of a scan.
+
+ * Command listROMs COLLECTION to display all ROMs with status.
+
+ * Command listArROMs COLLECTION displays BadName/Missing/Unknown/Error ROMs.
+
  * Decompress ZIP data to calculate hashes and used SHA1 as main hash.
    Do not use the CRC value in ZIP files.
 
  * Implement the header mechanism needed for FDS and NES platforms.
-
- * Store the results of a scan operation on a JSON file to be checked out later.
-
- * Display all ROMs of a collection with status.
-
- * Display Missing ROMs in a collection. Display Unknown ROMs and BadName ROMs.
 
  * What to do with Unknown ROMs? ROM leftover directory? Move them to ROM incoming directory?
 

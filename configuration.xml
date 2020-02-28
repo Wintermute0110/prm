@@ -5,20 +5,26 @@
 <common>
     <!-- Directory where you store the standard No-Intro DATs -->
     <NoIntro_DAT_dir>/home/kodi/DATs-NoIntro-standard/</NoIntro_DAT_dir>
+
     <!-- Directory where you store the Parent/Clone No-Intro DATs -->
     <NoIntro_pclone_DAT_dir>/home/kodi/DATs-NoIntro-pclone/</NoIntro_pclone_DAT_dir>
+
     <!-- Not used at the moment -->
     <MAME_DAT_dir>/home/kodi/DATs-mame/</MAME_DAT_dir>
+
     <!-- Not used at the moment -->
     <Incoming_dir>/home/kodi/incoming/</Incoming_dir>
 </common>
 
 <collection>
     <name>snes</name>
+
     <!-- Not used at the moment -->
     <platform>snes</platform>
+
     <!-- Filename of the DAT not including directory -->
     <DAT>Nintendo - Super Nintendo Entertainment System (Combined) (20191027-010632).dat</DAT>
+
     <!-- Directory of the ROMs -->
     <ROM_dir>/home/kodi/ROMs/nintendo-snes/</ROM_dir>
 </collection>

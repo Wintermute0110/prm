@@ -577,8 +577,9 @@ def load_XML_DAT_file(xml_FN):
 
 # Stores all sets in a ROM collection.
 class ROMcollection:
-    def __init__(self, dirname):
-        self.dirname = dirname
+    def __init__(self, collection_conf):
+        self.name = collection_conf['name'] # Collection <name>
+        self.dirname = collection_conf['ROM_dir'] # <ROM_dir>
         self.basename_index = {}
         self.sets = [] # List of ROMset objects. May have unknown ROM sets.
         self.file_list = [] # List of files with full path name.
