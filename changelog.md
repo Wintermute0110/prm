@@ -1,13 +1,15 @@
 ## TODO
 
- * [WIP] Store the results of a scan operation on a JSON file to be checked out later.
+ * [DONE] Store the results of a scan operation on a JSON file to be checked out later.
    The pickle module could be much better than JSON.
 
- * Command view COLLECTION/viewall to report the results of a scan.
+ * [DONE] Command view COLLECTION to report the results of a scan.
 
- * Command listROMs COLLECTION to display all ROMs with status.
+ * [DONE] Command listROMs COLLECTION to display all ROMs with status.
 
- * Command listArROMs COLLECTION displays BadName/Missing/Unknown/Error ROMs.
+ * [DONE] Command listIssues COLLECTION displays BadName/Missing/Unknown/Error ROMs.
+
+ * Command viewall to report the results of a scan.
 
  * Decompress ZIP data to calculate hashes and used SHA1 as main hash.
    Do not use the CRC value in ZIP files.

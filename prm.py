@@ -118,24 +118,12 @@ def command_scanall(options):
     stats_list = []
     for collection_name in configuration.collections:
         collection = perform_scanner(configuration, collection_name)
-        stats = common.get_collection_statistics(collection.sets)
-        stats['name'] = collection_name
-        stats_list.append(stats)
-
-    # Print results.
-    table_str = [
-        ['left', 'left', 'left', 'left', 'left', 'left', 'left'],
-        ['Collection', 'Total ROMs', 'Have ROMs', 'BadName ROMs',
-         'Miss ROMs', 'Unknown ROMs', 'Bad files'],
-    ]
-    for stats in stats_list:
-        table_str.append([
-            str(stats['name']), str(stats['total']), str(stats['have']), str(stats['badname']),
-            str(stats['miss']), str(stats['unknown']), '---',
-        ])
-    table_text = common.text_render_table(table_str)
-    print('')
-    for line in table_text: print(line)
+        # Save scanner results for later.
+        scan_FN = options.data_dir_FN.pjoin(collection.name + '_scan.bin')
+        print('Saving scanner results in "{}"'.format(scan_FN.getPath()))
+        f = open(scan_FN.getPath(), 'wb')
+        pickle.dump(collection, f)
+        f.close()
 
 def command_view(options, collection_name):
     log_info('View collection scan results')
@@ -160,10 +148,40 @@ def command_view(options, collection_name):
     print('Unknown ROMs  {:5,}'.format(stats['unknown']))
     print('Error SETs    {:5,}'.format(-1))
 
-def command_viewall(options, collection_name):
+def command_viewall(options):
     log_info('View all collections scan results')
     configuration = common.parse_File_Config(options)
 
+    stats_list = []
+    for collection_name in configuration.collections:
+        # Load collection scanner data.
+        scan_FN = options.data_dir_FN.pjoin(collection_name + '_scan.bin')
+        if not scan_FN.exists():
+            print('Not found {}'.format(scan_FN.getPath()))
+            print('Exiting')
+            sys.exit(1)
+        print('Loading scanner results in "{}"'.format(scan_FN.getPath()))
+        f = open(scan_FN.getPath(), 'rb')
+        collection = pickle.load(f)
+        f.close()
+        stats = common.get_collection_statistics(collection.sets)
+        stats['name'] = collection_name
+        stats_list.append(stats)
+
+    # Print results.
+    table_str = [
+        ['left', 'left', 'left', 'left', 'left', 'left', 'left'],
+        ['Collection', 'Total ROMs', 'Have ROMs', 'BadName ROMs',
+         'Miss ROMs', 'Unknown ROMs', 'Bad files'],
+    ]
+    for stats in stats_list:
+        table_str.append([
+            str(stats['name']), str(stats['total']), str(stats['have']), str(stats['badname']),
+            str(stats['miss']), str(stats['unknown']), '---',
+        ])
+    table_text = common.text_render_table(table_str)
+    print('')
+    for line in table_text: print(line)
 
 def command_listROMs(options, collection_name):
     log_info('List collection scanned ROMs')
