@@ -233,6 +233,49 @@ def command_listIssues(options, collection_name):
             else:
                 log_info('ROM {} "{}"'.format(rom['status'], rom['name']))
 
+LIST_BADNAME = 100
+LIST_MISSING = 200
+LIST_UNKNOWN = 300
+LIST_ERROR   = 400
+def command_listStuff(options, collection_name, list_type):
+    log_info('List collection scanned ROMs with issues')
+    # Load collection scanner data.
+    scan_FN = options.data_dir_FN.pjoin(collection_name + '_scan.bin')
+    if not scan_FN.exists():
+        print('Not found {}'.format(scan_FN.getPath()))
+        print('Exiting')
+        sys.exit(1)
+    print('Loading scanner results in "{}"'.format(scan_FN.getPath()))
+    f = open(scan_FN.getPath(), 'rb')
+    collection = pickle.load(f)
+    f.close()
+
+    # Print scanner results (long list)
+    print('\n=== Scanner long list ===')
+    num_items = 0
+    for set in collection.sets:
+        # Filter SET
+        if list_type == LIST_BADNAME:
+            if set.status != common.ROMset.SET_STATUS_BADNAME: continue
+        elif list_type == LIST_MISSING:
+            if set.status != common.ROMset.SET_STATUS_MISSING: continue
+        elif list_type == LIST_UNKNOWN:
+            if set.status != common.ROMset.SET_STATUS_UNKNOWN: continue
+        elif list_type == LIST_ERROR:
+            if set.status != common.ROMset.SET_STATUS_ERROR: continue
+        else:
+            raise TypeError('Wrong type. Logical error.')
+
+        log_info('\033[91mSET\033[0m {} "{}"'.format(set.status, set.basename))
+        num_items += 1
+        for rom in set.rom_list:
+            if rom['status'] == common.ROMset.ROM_STATUS_BADNAME:
+                log_info('ROM {} "{}" -> "{}"'.format(
+                    rom['status'], rom['name'], rom['correct_name']))
+            else:
+                log_info('ROM {} "{}"'.format(rom['status'], rom['name']))
+    print('\nListed {} items.'.format(num_items))
+
 def command_fix(options, collection_name):
     log_info('Fixing collection {}'.format(collection_name))
     configuration = common.parse_File_Config(options)
@@ -250,20 +293,28 @@ def command_usage():
   print("""Usage: prm.py [options] COMMAND [COLLECTION]
 
 Commands:
-usage                    Print usage information (this text).
-list                     Display ROM collections in the configuration file.
-scan COLLECTION          Scan ROM_dir in a collection and print results.
-scanall                  Scan all the collections.
-status COLLECTION        View scanner results.
-statusall                View scanner results for all collections.
-listROMs COLLECTION      List SETs of a collection with status.
-listIssues COLLECTION    List SETs with issues (BadName, Missing, Unknown, Error).
-fix COLLECTION           Fixes sets in ROM_dir in a collection.
+usage                     Print usage information (this text).
+list                      Display ROM collections in the configuration file.
+scan COLLECTION           Scan ROM_dir in a collection and print results.
+scanall                   Scan all the collections.
+status COLLECTION         View scanner results.
+statusall                 View scanner results for all collections.
+
+listROMs COLLECTION       List SETs of a collection with status.
+listIssues COLLECTION     List SETs with issues (BadName, Missing, Unknown, Error).
+listBadName
+listMissing
+listUnknown
+listError
+
+fix COLLECTION            Fixes sets in ROM_dir in a collection.
+
+deleteUnknown COLLECTION  Delete Unknown ROMs.
 
 Options:
--h, --help               Print short command reference.
--v, --verbose            Print more information about what's going on.
---dryRun                 Don't modify any files, just print the operations to be done.""")
+-h, --help                Print short command reference.
+-v, --verbose             Print more information about what's going on.
+--dryRun                  Don't modify any files, just print the operations to be done.""")
 
 # -----------------------------------------------------------------------------
 # main function
@@ -292,28 +343,24 @@ options.temp_dir_FN = temp_dir_FN
 
 # --- Positional arguments that don't require a filterName
 command = args.command[0]
-if command == 'usage':
-    command_usage()
-elif command == 'list':
-    command_listcollections(options)
+if command == 'usage': command_usage()
+elif command == 'list': command_listcollections(options)
 
-elif command == 'scan':
-    command_scan(options, args.collection)
-elif command == 'scanall':
-    command_scanall(options)
+elif command == 'scan': command_scan(options, args.collection)
+elif command == 'scanall': command_scanall(options)
 
-elif command == 'status':
-    command_status(options, args.collection)
-elif command == 'statusall':
-    command_statusall(options)
+elif command == 'status': command_status(options, args.collection)
+elif command == 'statusall': command_statusall(options)
 
-elif command == 'listROMs':
-    command_listROMs(options, args.collection)
-elif command == 'listIssues':
-    command_listIssues(options, args.collection)
+elif command == 'listROMs': command_listROMs(options, args.collection)
+elif command == 'listIssues': command_listIssues(options, args.collection)
+elif command == 'listBadName': command_listStuff(options, args.collection, LIST_BADNAME)
+elif command == 'listMissing': command_listStuff(options, args.collection, LIST_MISSING)
+elif command == 'listUnknown': command_listStuff(options, args.collection, LIST_UNKNOWN)
+elif command == 'listError': command_listStuff(options, args.collection, LIST_ERROR)
 
-elif command == 'fix':
-    command_fix(options, args.collection)
+elif command == 'fix': command_fix(options, args.collection)
+
 else:
     print('\033[31m[ERROR]\033[0m Unrecognised command "{}"'.format(command))
     sys.exit(1)
