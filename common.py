@@ -17,6 +17,7 @@
 
 # --- Python standard library --------------------------------------------------------------------
 from collections import OrderedDict
+import hashlib
 import fnmatch
 import os
 import pprint
@@ -24,6 +25,7 @@ import re
 import sys
 import xml.etree.ElementTree
 import zipfile
+import zlib
 
 # --- Global variables ---------------------------------------------------------------------------
 PRM_VERSION = '0.1.0'
@@ -602,7 +604,7 @@ class ROMcollection:
 
         # Compute indices for fast access.
         for i, rom_set in enumerate(self.sets):
-            log_debug('Index {:5d} Basename "{}"'.format(i, rom_set.basename))
+            # log_debug('Index {:5d} Basename "{}"'.format(i, rom_set.basename))
             self.basename_index[rom_set.basename] = i
 
         # Add missing ROMs.
@@ -634,7 +636,7 @@ class ROMcollection:
 
         # Refresh indices after addition of missing ROMs.
         for i, rom_set in enumerate(self.sets):
-            log_debug('Index {:5d} Basename "{}"'.format(i, rom_set.basename))
+            # log_debug('Index {:5d} Basename "{}"'.format(i, rom_set.basename))
             self.basename_index[rom_set.basename] = i
 
 # ROMset is a ZIP file that contains ROMs.
@@ -671,6 +673,34 @@ class ROMset:
             'status' : ROMset.ROM_STATUS_UNKNOWN,
         }
 
+def misc_calculate_stream_checksums(file_bytes):
+    log_debug('Computing checksums of bytes stream...'.format(len(file_bytes)))
+    crc_prev = 0
+    md5 = hashlib.md5()
+    sha1 = hashlib.sha1()
+    # Process bytes stream block by block
+    # for piece in misc_read_bytes_in_chunks(file_bytes):
+    #     crc_prev = zlib.crc32(piece, crc_prev)
+    #     md5.update(piece)
+    #     sha1.update(piece)
+    # Process bytes in one go
+    crc_prev = zlib.crc32(file_bytes, crc_prev)
+    md5.update(file_bytes)
+    sha1.update(file_bytes)
+    crc_digest = '{:08X}'.format(crc_prev & 0xFFFFFFFF)
+    md5_digest = md5.hexdigest()
+    sha1_digest = sha1.hexdigest()
+    size = len(file_bytes)
+
+    checksums = {
+        'crc'  : crc_digest.upper(),
+        'md5'  : md5_digest.upper(),
+        'sha1' : sha1_digest.upper(),
+        'size' : size,
+    }
+
+    return checksums
+
 def get_ROM_set_status(filename, DAT):
     set = ROMset(filename)
 
@@ -692,15 +722,19 @@ def get_ROM_set_status(filename, DAT):
 
     # Build ROM list in set.
     for zfilename in zip_f.namelist():
-        z_info = zip_f.getinfo(zfilename)
-        size = z_info.file_size
-        CRC = '{0:08x}'.format(z_info.CRC).upper()
-        log_debug('zfilename   "{}" size {:,} CRC {}'.format(zfilename, size, CRC))
+        # Decompress and calculate hashes and size.
+        buffer = zip_f.read(zfilename)
+        # Skip header if necessary.
+        # buffer = buffer[16:]
+        checksums = misc_calculate_stream_checksums(buffer)
+        log_debug('zfilename   "{}" size {:,}'.format(zfilename, checksums['size']))
         rom = set.new_rom()
         rom['name'] = zfilename
         rom['correct_name'] = zfilename
-        rom['size'] = size
-        rom['crc'] = CRC
+        rom['size'] = checksums['size']
+        rom['crc'] = checksums['crc']
+        rom['md5'] = checksums['md5']
+        rom['sha1'] = checksums['sha1']
         set.rom_list.append(rom)
     zip_f.close()
 
