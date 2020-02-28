@@ -100,26 +100,15 @@ def command_scan(options, collection_name):
     pickle.dump(collection, f)
     f.close()
 
-    # Print scanner results (long list)
-    print('\n=== Scanner long list ===')
-    for set in collection.sets:
-        log_info('SET {} "{}"'.format(set.status, set.basename))
-        for rom in set.rom_list:
-            if rom['status'] == common.ROMset.ROM_STATUS_BADNAME:
-                log_info('ROM {} "{}" -> "{}"'.format(
-                    rom['status'], rom['name'], rom['correct_name']))
-            else:
-                log_info('ROM {} "{}"'.format(rom['status'], rom['name']))
-
     # Print scanner summary.
     stats = common.get_collection_statistics(collection.sets)
-    print('\n=== Scanner results ===')
-    print('Collection   {}'.format(collection_name))
-    print('Total ROMs   {:,}'.format(stats['total']))
-    print('Have ROMs    {:,}'.format(stats['have']))
-    print('Miss ROMs    {:,}'.format(stats['miss']))
-    print('Badname ROMs {:,}'.format(stats['badname']))
-    print('Unknown ROMs {:,}'.format(stats['unknown']))
+    print('\n=== Scanner summary for collection {} ==='.format(collection_name))
+    print('Total ROMs    {:5,}'.format(stats['total']))
+    print('Have ROMs     {:5,}'.format(stats['have']))
+    print('Badname ROMs  {:5,}'.format(stats['badname']))
+    print('Miss ROMs     {:5,}'.format(stats['miss']))
+    print('Unknown ROMs  {:5,}'.format(stats['unknown']))
+    print('Error SETs    {:5,}'.format(-1))
 
 def command_scanall(options):
     log_info('Scanning collection')
@@ -147,6 +136,55 @@ def command_scanall(options):
     table_text = common.text_render_table(table_str)
     print('')
     for line in table_text: print(line)
+
+def command_view(options, collection_name):
+    log_info('View collection scan results')
+    # configuration = common.parse_File_Config(options)
+    # Load collection scanner data.
+    scan_FN = options.data_dir_FN.pjoin(collection_name + '_scan.bin')
+    if not scan_FN.exists():
+        print('Not found {}'.format(scan_FN.getPath()))
+        print('Exiting')
+        sys.exit(1)
+    print('Loading scanner results in "{}"'.format(scan_FN.getPath()))
+    f = open(scan_FN.getPath(), 'rb')
+    collection = pickle.load(f)
+    f.close()
+
+    # Print scanner summary.
+    stats = common.get_collection_statistics(collection.sets)
+    print('\n=== Scanner summary for collection {} ==='.format(collection_name))
+    print('Total ROMs    {:5,}'.format(stats['total']))
+    print('Have ROMs     {:5,}'.format(stats['have']))
+    print('Badname ROMs  {:5,}'.format(stats['badname']))
+    print('Miss ROMs     {:5,}'.format(stats['miss']))
+    print('Unknown ROMs  {:5,}'.format(stats['unknown']))
+    print('Error SETs    {:5,}'.format(-1))
+
+def command_viewall(options, collection_name):
+    log_info('View all collections scan results')
+    configuration = common.parse_File_Config(options)
+
+
+def command_listROMs(options, collection_name):
+    log_info('List collection scanned ROMs')
+    configuration = common.parse_File_Config(options)
+
+    # Print scanner results (long list)
+    print('\n=== Scanner long list ===')
+    for set in collection.sets:
+        log_info('SET {} "{}"'.format(set.status, set.basename))
+        for rom in set.rom_list:
+            if rom['status'] == common.ROMset.ROM_STATUS_BADNAME:
+                log_info('ROM {} "{}" -> "{}"'.format(
+                    rom['status'], rom['name'], rom['correct_name']))
+            else:
+                log_info('ROM {} "{}"'.format(rom['status'], rom['name']))
+
+def command_listIssues(options, collection_name):
+    log_info('List collection scanned ROMs with issues')
+    configuration = common.parse_File_Config(options)
+
 
 def command_fix(options, collection_name):
     log_info('Fixing collection {}'.format(collection_name))
@@ -204,14 +242,24 @@ if command == 'usage':
     command_usage()
 elif command == 'list':
     command_listcollections(options)
+
 elif command == 'scan':
-    collection_name = args.collection
-    command_scan(options, collection_name)
+    command_scan(options, args.collection)
 elif command == 'scanall':
     command_scanall(options)
+
+elif command == 'view':
+    command_view(options, args.collection)
+elif command == 'viewall':
+    command_viewall(options)
+
+elif command == 'listROMs':
+    command_listROMs(options, args.collection)
+elif command == 'listIssues':
+    command_listIssues(options)
+
 elif command == 'fix':
-    collection_name = args.collection
-    command_fix(options, collection_name)
+    command_fix(options, args.collection)
 else:
     print('\033[31m[ERROR]\033[0m Unrecognised command "{}"'.format(command))
     sys.exit(1)
