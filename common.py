@@ -640,7 +640,7 @@ class ROMcollection:
         # First make a list of sorted indices, then make a new sorted list with the indices.
         # https://stackoverflow.com/questions/6422700/how-to-get-indices-of-a-sorted-array-in-python
         sets_basename_list = [set.basename for set in self.sets]
-        sorted_idx = [i[0] for i in sorted(enumerate(sets_basename_list), key = lambda x:x[1])]
+        sorted_idx = [i[0] for i in sorted(enumerate(sets_basename_list), key = lambda x:x[1].lower())]
         self.sets = [self.sets[sorted_idx[i]] for i in range(len(self.sets))]
 
         # Refresh indices after addition of missing ROMs.
