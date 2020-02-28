@@ -17,16 +17,24 @@
 </common>
 
 <collection>
-    <name>snes</name>
+    <name>nes</name>
 
     <!-- Not used at the moment -->
-    <platform>snes</platform>
+    <platform>nes</platform>
+
+    <!-- Skip this first bytes (in decimal)... -->
+    <HeaderOffset>16</HeaderOffset>
+    
+    <!--- ... if this condition is true. More than one condition can be specified
+          using several <HeaderRule> tags.
+    -->
+    <HeaderRule offset="0">4E4553</HeaderRule> 
 
     <!-- Filename of the DAT not including directory -->
     <DAT>Nintendo - Super Nintendo Entertainment System (Combined) (20191027-010632).dat</DAT>
 
     <!-- Directory of the ROMs -->
-    <ROM_dir>/home/kodi/ROMs/nintendo-snes/</ROM_dir>
+    <ROM_dir>/home/kodi/ROMs/nintendo-nes/</ROM_dir>
 </collection>
 
 <collection>

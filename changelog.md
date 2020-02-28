@@ -1,22 +1,11 @@
 ## TODO
 
- * [DONE] Store the results of a scan operation on a JSON file to be checked out later.
-   The pickle module could be much better than JSON.
+ * Add Missing ROMs by SHA1 and not just by basename. A SET may have good name
+   but bad hash.
 
- * [DONE] Command view COLLECTION to report the results of a scan.
+ * What to do with Unknown SETs? ROM leftover directory? Move them to ROM incoming directory?
 
- * [DONE] Command listROMs COLLECTION to display all ROMs with status.
-
- * [DONE] Command listIssues COLLECTION displays BadName/Missing/Unknown/Error ROMs.
-
- * [DONE] Command viewall to report the results of a scan.
-
- * [DONE] Decompress ZIP data to calculate hashes and used SHA1 as main hash.
-   Do not use the CRC value in ZIP files.
-
- * [DONE] Implement the header mechanism needed for FDS and NES platforms.
-
- * What to do with Unknown ROMs? ROM leftover directory? Move them to ROM incoming directory?
+ * What to do with Error SETs?
 
 ## prm version 0.1.0 xx January 2020
 

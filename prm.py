@@ -31,7 +31,7 @@ from common import ROMcollection
 # --- Class with program options and settings ----------------------------------------------------
 class Options:
     def __init__(self):
-        self.config_file_name = 'configuration-dev.xml'
+        self.config_file_name = 'configuration.xml'
 
 # Process the program options in variable args. Returns an Options object.
 def process_arguments(args):
@@ -293,7 +293,7 @@ def command_deleteUnknown(options, collection_name):
     collection = perform_scanner(configuration, collection_name)
     for set in collection.sets:
         if set.status == common.ROMset.SET_STATUS_UNKNOWN:
-            print('Deleting {}'.format(set.filename))
+            print('Deleting {}'.format(set.basename))
             os.remove(set.filename)
     # Rescan collection and store results in chache.
     command_scan(options, collection_name)

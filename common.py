@@ -391,7 +391,8 @@ class ConfigFile:
     collection_tag_set = [
         'name',
         'platform',
-        'HeaderOffsetBytes',
+        'HeaderOffset',
+        'HeaderRule',
         'DAT',
         'ROM_dir',
     ]
@@ -414,7 +415,8 @@ class ConfigFile:
         return OrderedDict([
             ('name', ''),
             ('platform', ''),
-            ('HeaderOffsetBytes', 0),
+            ('HeaderOffset', 0),
+            ('HeaderRules', []),
             ('DAT', ''),
             ('ROM_dir', ''),
         ])
@@ -450,11 +452,17 @@ def parse_File_Config(options):
                     print('[ERROR] On <collection> section')
                     print('[ERROR] Unrecognised tag <{}>'.format(xml_tag))
                     sys.exit(10)
-                if xml_tag == 'HeaderOffsetBytes':
-                    # Convert data types if not string.
+                # Convert data types if not string.
+                # By default all tag context is string.
+                if xml_tag == 'HeaderOffset':
                     collection[xml_tag] = int(xml_text)
+                elif xml_tag == 'HeaderRule':
+                    offset = int(filter_child.attrib['offset'])
+                    collection['HeaderRules'].append({
+                        'offset' : offset,
+                        'value' : xml_text,
+                    })
                 else:
-                    # By default all tag context is string.
                     collection[xml_tag] = xml_text
             filter_name = collection['name']
             if not filter_name:
@@ -512,11 +520,11 @@ class DATfile:
                     log_error('In set {} ROM {}'.format(set['name'], ROM['name']))
                     log_error('Duplicated CRC {}'.format(ROM['crc']))
                     sys.exit(2)
-                if ROM['md5'] in self.crc_index:
+                if ROM['md5'] in self.md5_index:
                     log_error('In set {} ROM {}'.format(set['name'], ROM['name']))
                     log_error('Duplicated MD5 {}'.format(ROM['md5']))
                     sys.exit(2)
-                if ROM['sha1'] in self.crc_index:
+                if ROM['sha1'] in self.sha1_index:
                     log_error('In set {} ROM {}'.format(set['name'], ROM['name']))
                     log_error('Duplicated SHA1 {}'.format(ROM['sha1']))
                     sys.exit(2)
@@ -526,6 +534,9 @@ class DATfile:
 
     def ROM_CRC_exists(self, crc):
         return crc in self.crc_index
+
+    def ROM_SHA1_exists(self, crc):
+        return crc in self.sha1_index
 
     def get_ROM_CRC(self, crc):
         set_idx, rom_idx = self.crc_index[crc]
@@ -588,7 +599,8 @@ def load_XML_DAT_file(xml_FN):
 class ROMcollection:
     def __init__(self, collection_conf):
         self.name = collection_conf['name'] # Collection <name>
-        self.offsetBytes = collection_conf['HeaderOffsetBytes'] # Collection <HeaderOffsetBytes>
+        self.headerOffset = collection_conf['HeaderOffset'] # Collection <HeaderOffsetBytes>
+        self.headerRules = collection_conf['HeaderRules']
         self.dirname = collection_conf['ROM_dir'] # <ROM_dir>
         self.num_DAT_sets = 0
         self.basename_index = {}
@@ -598,7 +610,9 @@ class ROMcollection:
     # Scans files in self.dirname and fills self.file_list
     def scan_files_in_dir(self):
         ROM_dir_FN = FileName(self.dirname)
-        log_info('HeaderOffsetBytes {}'.format(self.offsetBytes))
+        log_info('HeaderOffset {}'.format(self.headerOffset))
+        for rule in self.headerRules:
+            print('HeaderRule offset {} value {}'.format(rule['offset'], rule['value']))
         log_info('Scanning files in "{}"...'.format(ROM_dir_FN.getPath()))
         if not ROM_dir_FN.exists():
             log_error('Directory does not exist "{}"'.format(ROM_dir_FN.getPath()))
@@ -611,7 +625,7 @@ class ROMcollection:
 
         # Determine status of the ROM sets (aka ZIP files).
         for filename in sorted(self.file_list):
-            set = get_ROM_set_status(filename, DAT, self.offsetBytes)
+            set = get_ROM_set_status(filename, DAT, self.headerOffset, self.headerRules)
             self.sets.append(set)
 
         # Compute indices for fast access.
@@ -621,6 +635,7 @@ class ROMcollection:
 
         # Add missing ROMs.
         # Check if sets in DAT exists, if not it add it to the list.
+        # TODO Use CRC or SHA1 to add missing sets, not filenames!!!
         log_info('Adding missing ROMs...')
         num_missing = 0
         for dat_set in DAT.sets:
@@ -723,7 +738,7 @@ def misc_calculate_stream_checksums(file_bytes):
 # This function assumes sets (ZIP files) contain 1 ROM. Otherwise it is an error.
 # For MAME ZIP files another function is required.
 # Also, NoIntro sets with severe errors require a more sofisticated function.
-def get_ROM_set_status(filename, DAT, offsetBytes):
+def get_ROM_set_status(filename, DAT, headerOffset, headerRules):
     set = ROMset(filename)
 
     # Open the ZIP file.
@@ -747,8 +762,30 @@ def get_ROM_set_status(filename, DAT, offsetBytes):
     # Decompress and calculate hashes and size.
     buffer = zip_f.read(zfilename)
     # Skip ROM header if necessary.
+    if headerOffset > 0:
+        rule_output = []
+        for rule in headerRules:
+            offset = rule['offset']
+            value = rule['value']
+            num_bytes = int(len(value) / 2)
+            log_debug('HeaderRule offset {} num_bytes {}'.format(offset, num_bytes))
+            bytes_hex = buffer[offset:offset + num_bytes].hex()
+            log_debug('value     {}'.format(value))
+            log_debug('bytes_hex {}'.format(bytes_hex))
+            rule_output.append(value.lower() == bytes_hex.lower())
+        if all(rule_output):
+            log_debug('Rules verified.')
+            offsetBytes = headerOffset
+        else:
+            log_debug('Rules NOT verified.')
+            offsetBytes = 0
+    else:
+        offsetBytes = 0
+    log_debug('offsetBytes {}'.format(offsetBytes))
     checksums = misc_calculate_stream_checksums(buffer[offsetBytes:])
     log_debug('zfilename   "{}" size {:,}'.format(zfilename, checksums['size']))
+    log_debug('CRC         "{}"'.format(checksums['crc']))
+    log_debug('SHA1        "{}"'.format(checksums['sha1']))
     rom = set.new_rom()
     rom['name'] = zfilename
     rom['correct_name'] = zfilename
