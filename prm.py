@@ -171,7 +171,7 @@ def command_statusall(options):
 
     # Print results.
     table_str = [
-        ['left', 'left', 'left', 'left', 'left', 'left', 'left'],
+        ['left', 'left', 'left', 'left', 'left', 'left', 'left', 'left'],
         ['Collection', 'DAT SETs', 'Total ROMs', 'Have ROMs',
          'BadName ROMs', 'Miss ROMs', 'Unknown ROMs', 'Error files'],
     ]
