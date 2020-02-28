@@ -582,7 +582,7 @@ class ROMcollection:
         self.dirname = collection_conf['ROM_dir'] # <ROM_dir>
         self.basename_index = {}
         self.sets = [] # List of ROMset objects. May have unknown ROM sets.
-        self.file_list = [] # List of files with full path name.
+        self.file_list = [] # List of files in ROM_dir with full path name.
 
     # Scans files in self.dirname and fills self.file_list
     def scan_files_in_dir(self):
@@ -624,6 +624,13 @@ class ROMcollection:
                 self.sets.append(rom_set)
                 num_missing += 1
         log_info('Added {} missing sets.'.format(num_missing))
+
+        # Sort all sets alphabetically, before making index.
+        # First make a list of sorted indices, then make a new sorted list with the indices.
+        # https://stackoverflow.com/questions/6422700/how-to-get-indices-of-a-sorted-array-in-python
+        sets_basename_list = [set.basename for set in self.sets]
+        sorted_idx = [i[0] for i in sorted(enumerate(sets_basename_list), key = lambda x:x[1])]
+        self.sets = [self.sets[sorted_idx[i]] for i in range(len(self.sets))]
 
         # Refresh indices after addition of missing ROMs.
         for i, rom_set in enumerate(self.sets):
