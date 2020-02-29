@@ -49,7 +49,7 @@ def process_arguments(args):
     return options
 
 def perform_scanner(configuration, collection_name):
-    # Check if the configuration in the command line exists and do scanning.
+    log_info('***** Scanning collection {} *****'.format(collection_name))
     if collection_name not in configuration.collections:
         log_error('Collection "{}" not found in the configuration file.'.format(collection_name))
         sys.exit(1)

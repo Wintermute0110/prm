@@ -1,5 +1,7 @@
 ## TODO
 
+ * URGENT Automatic NoIntro DAT selector.
+
  * Add Missing ROMs by SHA1 and not just by basename. A SET may have good name
    but bad hash.
 
