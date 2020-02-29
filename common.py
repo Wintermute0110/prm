@@ -624,9 +624,15 @@ class ROMcollection:
         self.num_DAT_sets = len(DAT.sets)
 
         # Determine status of the ROM sets (aka ZIP files).
+        num_files = len(self.file_list)
+        file_count = 1
         for filename in sorted(self.file_list):
             set = get_ROM_set_status(filename, DAT, self.headerOffset, self.headerRules)
             self.sets.append(set)
+            sys.stdout.write("\rProcessed file {} of {}... ".format(file_count, num_files))
+            sys.stdout.flush()
+            file_count += 1
+        sys.stdout.write("\r\n")
 
         # Compute indices for fast access.
         for i, rom_set in enumerate(self.sets):
